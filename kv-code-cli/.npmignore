@@ -1,0 +1,7 @@
+scripts/build_npm_package.py
+scripts/__pycache__/
+scripts/init_firewall.sh
+scripts/run_in_container.sh
+scripts/README.md
+.gitignore
+vendor/

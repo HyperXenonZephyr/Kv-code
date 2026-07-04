@@ -16,7 +16,7 @@ use crate::spawn_prep::legacy_session_capability_roots;
 use crate::spawn_prep::prepare_legacy_session_security;
 use crate::spawn_prep::prepare_legacy_spawn_context;
 use anyhow::Result;
-use codex_protocol::models::PermissionProfile;
+use kv_code_protocol::models::PermissionProfile;
 use codex_utils_absolute_path::AbsolutePathBuf;
 use codex_utils_pty::ProcessDriver;
 use codex_utils_pty::SpawnedProcess;

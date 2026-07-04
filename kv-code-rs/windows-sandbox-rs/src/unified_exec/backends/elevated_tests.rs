@@ -7,7 +7,7 @@ use crate::ipc_framed::ErrorStage;
 use crate::ipc_framed::SpawnRequest;
 use crate::resolved_permissions::ResolvedWindowsSandboxPermissions;
 use crate::runner_client::RunnerStartupError;
-use codex_protocol::models::PermissionProfile;
+use kv_code_protocol::models::PermissionProfile;
 use codex_utils_absolute_path::AbsolutePathBuf;
 use pretty_assertions::assert_eq;
 use serde_json::Value;

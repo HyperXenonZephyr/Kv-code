@@ -1,4 +1,4 @@
-use codex_protocol::models::PermissionProfile;
+use kv_code_protocol::models::PermissionProfile;
 use codex_utils_absolute_path::AbsolutePathBuf;
 use std::collections::HashMap;
 use std::path::Path;

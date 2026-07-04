@@ -10,7 +10,7 @@
 use anyhow::Result;
 use base64::Engine as _;
 use base64::engine::general_purpose::STANDARD;
-use codex_protocol::models::PermissionProfile;
+use kv_code_protocol::models::PermissionProfile;
 use codex_utils_absolute_path::AbsolutePathBuf;
 use serde::Deserialize;
 use serde::Serialize;

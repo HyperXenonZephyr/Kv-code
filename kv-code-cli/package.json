@@ -1,6 +1,6 @@
 {
   "name": "@hyperxenonzephyr/kv-code",
-  "version": "0.0.0-dev",
+  "version": "0.1.3",
   "description": "KV Code is a local-first coding agent for terminal workflows.",
   "license": "Apache-2.0",
   "homepage": "https://github.com/HyperXenonZephyr/Kv-code#readme",
@@ -17,12 +17,20 @@
   "bin": {
     "kv-code": "bin/kv-code.js"
   },
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js",
+    "build": "python scripts/build_npm_package.py --package kv-code --version $npm_package_version --vendor-src ./vendor --pack-output ./dist/kv-code.tgz",
+    "prepublishOnly": "npm run build"
+  },
   "type": "module",
   "engines": {
     "node": ">=16"
   },
   "files": [
-    "bin/kv-code.js"
+    "bin/kv-code.js",
+    "scripts/postinstall.js",
+    "README.md",
+    "LICENSE"
   ],
   "optionalDependencies": {
     "@hyperxenonzephyr/kv-code-linux-x64": "0.0.0-dev",

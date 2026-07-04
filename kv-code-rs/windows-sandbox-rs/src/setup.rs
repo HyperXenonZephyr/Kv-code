@@ -30,7 +30,7 @@ use anyhow::Result;
 use anyhow::anyhow;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
-use codex_protocol::models::PermissionProfile;
+use kv_code_protocol::models::PermissionProfile;
 use codex_utils_absolute_path::AbsolutePathBuf;
 
 use windows_sys::Win32::Foundation::CloseHandle;
@@ -1150,8 +1150,8 @@ mod tests {
     use crate::setup_error::SetupErrorReport;
     use crate::setup_error::extract_failure;
     use crate::setup_error::write_setup_error_report;
-    use codex_protocol::models::PermissionProfile;
-    use codex_protocol::permissions::NetworkSandboxPolicy;
+    use kv_code_protocol::models::PermissionProfile;
+    use kv_code_protocol::permissions::NetworkSandboxPolicy;
     use codex_utils_absolute_path::AbsolutePathBuf;
     use pretty_assertions::assert_eq;
     use std::collections::HashMap;
