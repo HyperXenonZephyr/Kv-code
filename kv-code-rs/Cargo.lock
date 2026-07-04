@@ -372,7 +372,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -383,7 +383,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -1926,39 +1926,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "kv-code-api"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "assert_matches",
- "async-channel",
- "base64 0.22.1",
- "bytes",
- "chrono",
- "kv-code-client",
- "codex-protocol",
- "codex-utils-rustls-provider",
- "eventsource-stream",
- "futures",
- "http 1.4.0",
- "pretty_assertions",
- "regex-lite",
- "reqwest 0.12.28",
- "schemars 0.8.22",
- "serde",
- "serde_json",
- "thiserror 2.0.18",
- "tokio",
- "tokio-test",
- "tokio-tungstenite",
- "tokio-util",
- "tracing",
- "tungstenite",
- "url",
- "wiremock",
-]
-
-[[package]]
 name = "codex-app-server"
 version = "0.0.0"
 dependencies = [
@@ -1990,12 +1957,9 @@ dependencies = [
  "codex-git-utils",
  "codex-goal-extension",
  "codex-guardian",
- "kv-code-home",
  "codex-hooks",
  "codex-image-generation-extension",
  "codex-login",
- "kv-code-mcp",
- "kv-code-mcp-extension",
  "codex-memories-extension",
  "codex-memories-write",
  "codex-model-provider",
@@ -2024,6 +1988,9 @@ dependencies = [
  "flate2",
  "futures",
  "hmac 0.12.1",
+ "kv-code-home",
+ "kv-code-mcp",
+ "kv-code-mcp-extension",
  "opentelemetry",
  "opentelemetry_sdk",
  "pretty_assertions",
@@ -2105,13 +2072,13 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "clap",
- "kv-code-experimental-api-macros",
  "codex-protocol",
  "codex-shell-command",
  "codex-utils-absolute-path",
  "codex-utils-cargo-bin",
  "codex-utils-path-uri",
  "inventory",
+ "kv-code-experimental-api-macros",
  "pretty_assertions",
  "rmcp",
  "schemars 0.8.22",
@@ -2158,7 +2125,6 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "clap",
- "kv-code-api",
  "codex-app-server-protocol",
  "codex-config",
  "codex-core",
@@ -2175,6 +2141,7 @@ dependencies = [
  "hmac 0.12.1",
  "httpdate",
  "jsonwebtoken",
+ "kv-code-api",
  "owo-colors",
  "pretty_assertions",
  "rand 0.9.3",
@@ -2218,7 +2185,6 @@ dependencies = [
  "anyhow",
  "codex-apply-patch",
  "codex-exec-server",
- "kv-code-install-context",
  "codex-linux-sandbox",
  "codex-sandboxing",
  "codex-shell-escalation",
@@ -2226,6 +2192,7 @@ dependencies = [
  "codex-utils-home-dir",
  "codex-windows-sandbox",
  "dotenvy",
+ "kv-code-install-context",
  "pretty_assertions",
  "tempfile",
  "tokio",
@@ -2260,25 +2227,16 @@ name = "codex-backend-client"
 version = "0.0.0"
 dependencies = [
  "anyhow",
- "kv-code-api",
- "kv-code-backend-openapi-models",
- "kv-code-client",
  "codex-login",
  "codex-model-provider",
  "codex-protocol",
+ "kv-code-api",
+ "kv-code-backend-openapi-models",
+ "kv-code-client",
  "pretty_assertions",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "kv-code-backend-openapi-models"
-version = "0.0.0"
-dependencies = [
- "serde",
- "serde_json",
- "serde_with",
 ]
 
 [[package]]
@@ -2312,116 +2270,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "kv-code-cli"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "app_test_support",
- "assert_cmd",
- "assert_matches",
- "clap",
- "clap_complete",
- "kv-code-api",
- "codex-app-server",
- "codex-app-server-daemon",
- "codex-app-server-protocol",
- "codex-app-server-test-client",
- "codex-arg0",
- "codex-chatgpt",
- "codex-cloud-tasks",
- "codex-config",
- "codex-core",
- "codex-core-plugins",
- "codex-exec",
- "codex-exec-server",
- "codex-execpolicy",
- "codex-features",
- "codex-git-utils",
- "kv-code-home",
- "kv-code-install-context",
- "codex-login",
- "kv-code-mcp",
- "kv-code-mcp-server",
- "codex-memories-write",
- "codex-model-provider",
- "codex-models-manager",
- "codex-plugin",
- "codex-protocol",
- "codex-responses-api-proxy",
- "codex-rmcp-client",
- "codex-rollout",
- "codex-rollout-trace",
- "codex-sandboxing",
- "codex-state",
- "codex-stdio-to-uds",
- "codex-terminal-detection",
- "codex-tui",
- "codex-utils-absolute-path",
- "codex-utils-cargo-bin",
- "codex-utils-cli",
- "codex-utils-path",
- "codex-windows-sandbox",
- "crossterm",
- "http 1.4.0",
- "insta",
- "libc",
- "os_info",
- "owo-colors",
- "predicates",
- "pretty_assertions",
- "regex-lite",
- "serde",
- "serde_json",
- "sqlx",
- "supports-color 3.0.2",
- "sys-locale",
- "tempfile",
- "tokio",
- "toml 0.9.11+spec-1.1.0",
- "tracing",
- "tracing-appender",
- "tracing-subscriber",
- "unicode-segmentation",
- "url",
- "which 8.0.0",
- "windows-sys 0.52.0",
- "wiremock",
-]
-
-[[package]]
-name = "kv-code-client"
-version = "0.0.0"
-dependencies = [
- "bytes",
- "codex-utils-cargo-bin",
- "codex-utils-rustls-provider",
- "eventsource-stream",
- "futures",
- "http 1.4.0",
- "opentelemetry",
- "opentelemetry_sdk",
- "pretty_assertions",
- "rand 0.9.3",
- "rcgen",
- "reqwest 0.12.28",
- "rustls",
- "rustls-native-certs",
- "rustls-pki-types",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "system-configuration",
- "tempfile",
- "thiserror 2.0.18",
- "tokio",
- "tracing",
- "tracing-opentelemetry",
- "tracing-subscriber",
- "windows-sys 0.52.0",
- "zstd 0.13.3",
-]
-
-[[package]]
 name = "codex-cloud-config"
 version = "0.0.0"
 dependencies = [
@@ -2452,7 +2300,6 @@ dependencies = [
  "anyhow",
  "chrono",
  "clap",
- "kv-code-client",
  "codex-cloud-tasks-client",
  "codex-cloud-tasks-mock-client",
  "codex-core",
@@ -2462,6 +2309,7 @@ dependencies = [
  "codex-tui",
  "codex-utils-cli",
  "crossterm",
+ "kv-code-client",
  "owo-colors",
  "pretty_assertions",
  "ratatui",
@@ -2482,9 +2330,9 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "chrono",
- "kv-code-api",
  "codex-backend-client",
  "codex-git-utils",
+ "kv-code-api",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
@@ -2647,7 +2495,6 @@ dependencies = [
  "clap",
  "codex-agent-graph-store",
  "codex-analytics",
- "kv-code-api",
  "codex-app-server-protocol",
  "codex-apply-patch",
  "codex-async-utils",
@@ -2664,12 +2511,9 @@ dependencies = [
  "codex-feedback",
  "codex-file-system",
  "codex-git-utils",
- "kv-code-home",
  "codex-hooks",
  "codex-image-generation-extension",
- "kv-code-install-context",
  "codex-login",
- "kv-code-mcp",
  "codex-memories-read",
  "codex-model-provider",
  "codex-model-provider-info",
@@ -2717,6 +2561,10 @@ dependencies = [
  "image",
  "indexmap 2.14.0",
  "insta",
+ "kv-code-api",
+ "kv-code-home",
+ "kv-code-install-context",
+ "kv-code-mcp",
  "libc",
  "maplit",
  "once_cell",
@@ -2769,12 +2617,12 @@ dependencies = [
  "codex-exec-server",
  "codex-extension-api",
  "codex-features",
- "kv-code-home",
  "codex-login",
  "codex-model-provider-info",
  "codex-models-manager",
  "codex-protocol",
  "codex-utils-absolute-path",
+ "kv-code-home",
 ]
 
 [[package]]
@@ -2792,7 +2640,6 @@ dependencies = [
  "codex-git-utils",
  "codex-hooks",
  "codex-login",
- "kv-code-mcp",
  "codex-model-provider",
  "codex-otel",
  "codex-plugin",
@@ -2804,6 +2651,7 @@ dependencies = [
  "codex-utils-plugins",
  "dirs",
  "flate2",
+ "kv-code-mcp",
  "libc",
  "pretty_assertions",
  "regex",
@@ -2914,8 +2762,6 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "clatter",
- "kv-code-api",
- "kv-code-client",
  "codex-exec-server-protocol",
  "codex-file-system",
  "codex-network-proxy",
@@ -2930,6 +2776,8 @@ dependencies = [
  "ctor 0.6.3",
  "futures",
  "http 1.4.0",
+ "kv-code-api",
+ "kv-code-client",
  "libc",
  "opentelemetry",
  "opentelemetry_sdk",
@@ -3006,15 +2854,6 @@ dependencies = [
  "serde_with",
  "starlark",
  "tempfile",
-]
-
-[[package]]
-name = "kv-code-experimental-api-macros"
-version = "0.0.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.117",
 ]
 
 [[package]]
@@ -3180,17 +3019,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "kv-code-home"
-version = "0.0.0"
-dependencies = [
- "codex-extension-api",
- "codex-utils-absolute-path",
- "pretty_assertions",
- "tempfile",
- "tokio",
-]
-
-[[package]]
 name = "codex-hooks"
 version = "0.0.0"
 dependencies = [
@@ -3218,7 +3046,6 @@ name = "codex-image-generation-extension"
 version = "0.0.0"
 dependencies = [
  "base64 0.22.1",
- "kv-code-api",
  "codex-core",
  "codex-exec-server",
  "codex-extension-api",
@@ -3231,22 +3058,13 @@ dependencies = [
  "codex-utils-image",
  "codex-utils-path-uri",
  "http 1.4.0",
+ "kv-code-api",
  "pretty_assertions",
  "schemars 0.8.22",
  "serde",
  "serde_json",
  "tokio",
  "tracing",
-]
-
-[[package]]
-name = "kv-code-install-context"
-version = "0.0.0"
-dependencies = [
- "codex-utils-absolute-path",
- "codex-utils-home-dir",
- "pretty_assertions",
- "tempfile",
 ]
 
 [[package]]
@@ -3263,12 +3081,12 @@ version = "0.0.0"
 dependencies = [
  "clap",
  "codex-core",
- "kv-code-install-context",
  "codex-process-hardening",
  "codex-protocol",
  "codex-sandboxing",
  "codex-utils-absolute-path",
  "globset",
+ "kv-code-install-context",
  "landlock",
  "libc",
  "pretty_assertions",
@@ -3303,7 +3121,6 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "codex-agent-identity",
- "kv-code-client",
  "codex-config",
  "codex-keyring-store",
  "codex-model-provider-info",
@@ -3315,6 +3132,7 @@ dependencies = [
  "core_test_support",
  "jsonwebtoken",
  "keyring",
+ "kv-code-client",
  "once_cell",
  "os_info",
  "pretty_assertions",
@@ -3333,99 +3151,6 @@ dependencies = [
  "url",
  "urlencoding",
  "webbrowser",
- "wiremock",
-]
-
-[[package]]
-name = "kv-code-mcp"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "arc-swap",
- "async-channel",
- "kv-code-api",
- "codex-async-utils",
- "codex-config",
- "codex-connectors",
- "codex-exec-server",
- "codex-login",
- "codex-model-provider",
- "codex-otel",
- "codex-plugin",
- "codex-protocol",
- "codex-rmcp-client",
- "codex-utils-path-uri",
- "codex-utils-plugins",
- "futures",
- "pretty_assertions",
- "regex-lite",
- "rmcp",
- "serde",
- "serde_json",
- "sha1 0.10.6",
- "tempfile",
- "thiserror 2.0.18",
- "tokio",
- "tokio-util",
- "tracing",
- "url",
-]
-
-[[package]]
-name = "kv-code-mcp-extension"
-version = "0.0.0"
-dependencies = [
- "codex-config",
- "codex-connectors-extension",
- "codex-core",
- "codex-core-plugins",
- "codex-exec-server",
- "codex-extension-api",
- "codex-features",
- "codex-login",
- "kv-code-mcp",
- "codex-plugin",
- "codex-protocol",
- "codex-utils-absolute-path",
- "codex-utils-path-uri",
- "pretty_assertions",
- "serde_json",
- "tempfile",
- "thiserror 2.0.18",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "kv-code-mcp-server"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "codex-arg0",
- "codex-config",
- "codex-core",
- "codex-exec-server",
- "codex-extension-api",
- "kv-code-home",
- "codex-login",
- "codex-protocol",
- "codex-shell-command",
- "codex-utils-absolute-path",
- "codex-utils-cli",
- "codex-utils-json-to-toml",
- "core_test_support",
- "mcp_test_support",
- "os_info",
- "pretty_assertions",
- "rmcp",
- "schemars 0.8.22",
- "serde",
- "serde_json",
- "shlex",
- "tempfile",
- "tokio",
- "tracing",
- "tracing-subscriber",
  "wiremock",
 ]
 
@@ -3516,9 +3241,7 @@ name = "codex-model-provider"
 version = "0.0.0"
 dependencies = [
  "codex-agent-identity",
- "kv-code-api",
  "codex-aws-auth",
- "kv-code-client",
  "codex-feedback",
  "codex-login",
  "codex-model-provider-info",
@@ -3527,6 +3250,8 @@ dependencies = [
  "codex-protocol",
  "codex-response-debug-context",
  "http 1.4.0",
+ "kv-code-api",
+ "kv-code-client",
  "pretty_assertions",
  "serde_json",
  "tokio",
@@ -3538,10 +3263,10 @@ dependencies = [
 name = "codex-model-provider-info"
 version = "0.0.0"
 dependencies = [
- "kv-code-api",
  "codex-protocol",
  "codex-utils-absolute-path",
  "http 1.4.0",
+ "kv-code-api",
  "maplit",
  "pretty_assertions",
  "schemars 0.8.22",
@@ -3630,13 +3355,13 @@ name = "codex-otel"
 version = "0.0.0"
 dependencies = [
  "chrono",
- "kv-code-api",
  "codex-protocol",
  "codex-utils-absolute-path",
  "codex-utils-string",
  "eventsource-stream",
  "gethostname",
  "http 1.4.0",
+ "kv-code-api",
  "opentelemetry",
  "opentelemetry-appender-tracing",
  "opentelemetry-otlp",
@@ -3746,8 +3471,8 @@ name = "codex-response-debug-context"
 version = "0.0.0"
 dependencies = [
  "base64 0.22.1",
- "kv-code-api",
  "http 1.4.0",
+ "kv-code-api",
  "pretty_assertions",
  "serde_json",
 ]
@@ -3777,7 +3502,6 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "bytes",
- "kv-code-api",
  "codex-config",
  "codex-exec-server",
  "codex-keyring-store",
@@ -3789,6 +3513,7 @@ dependencies = [
  "codex-utils-pty",
  "futures",
  "keyring",
+ "kv-code-api",
  "memchr",
  "oauth2",
  "pretty_assertions",
@@ -3951,12 +3676,12 @@ dependencies = [
  "codex-core-skills",
  "codex-exec-server",
  "codex-extension-api",
- "kv-code-mcp",
  "codex-protocol",
  "codex-tools",
  "codex-utils-absolute-path",
  "codex-utils-path-uri",
  "codex-utils-string",
+ "kv-code-mcp",
  "pretty_assertions",
  "schemars 0.8.22",
  "serde",
@@ -4035,12 +3760,12 @@ version = "0.0.0"
 dependencies = [
  "chrono",
  "codex-git-utils",
- "kv-code-install-context",
  "codex-otel",
  "codex-protocol",
  "codex-rollout",
  "codex-state",
  "codex-utils-path",
+ "kv-code-install-context",
  "pretty_assertions",
  "serde",
  "serde_json",
@@ -4090,7 +3815,6 @@ dependencies = [
  "codex-app-server-client",
  "codex-app-server-protocol",
  "codex-arg0",
- "kv-code-cli",
  "codex-cloud-config",
  "codex-config",
  "codex-connectors",
@@ -4101,9 +3825,7 @@ dependencies = [
  "codex-feedback",
  "codex-file-search",
  "codex-git-utils",
- "kv-code-install-context",
  "codex-login",
- "kv-code-mcp",
  "codex-message-history",
  "codex-model-provider",
  "codex-model-provider-info",
@@ -4141,6 +3863,9 @@ dependencies = [
  "image",
  "insta",
  "itertools 0.14.0",
+ "kv-code-cli",
+ "kv-code-install-context",
+ "kv-code-mcp",
  "lazy_static",
  "libc",
  "pathdiff",
@@ -4436,7 +4161,6 @@ dependencies = [
 name = "codex-web-search-extension"
 version = "0.0.0"
 dependencies = [
- "kv-code-api",
  "codex-core",
  "codex-extension-api",
  "codex-login",
@@ -4445,6 +4169,7 @@ dependencies = [
  "codex-protocol",
  "codex-tools",
  "http 1.4.0",
+ "kv-code-api",
  "pretty_assertions",
  "schemars 0.8.22",
  "serde_json",
@@ -4721,7 +4446,6 @@ dependencies = [
  "codex-exec-server",
  "codex-extension-api",
  "codex-features",
- "kv-code-home",
  "codex-hooks",
  "codex-login",
  "codex-model-provider-info",
@@ -4732,6 +4456,7 @@ dependencies = [
  "codex-utils-path-uri",
  "ctor 0.6.3",
  "futures",
+ "kv-code-home",
  "notify",
  "opentelemetry",
  "opentelemetry_sdk",
@@ -5506,7 +5231,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users 0.5.2",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5863,7 +5588,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -6487,7 +6212,7 @@ dependencies = [
  "gobject-sys",
  "libc",
  "system-deps",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -8451,7 +8176,7 @@ checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
 dependencies = [
  "hermit-abi",
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -8517,7 +8242,7 @@ dependencies = [
  "portable-atomic",
  "portable-atomic-util",
  "serde_core",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -8722,6 +8447,281 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "558bf9508a558512042d3095138b1f7b8fe90c5467d94f9f1da28b3731c5dbd1"
 dependencies = [
  "static_assertions",
+]
+
+[[package]]
+name = "kv-code-api"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "assert_matches",
+ "async-channel",
+ "base64 0.22.1",
+ "bytes",
+ "chrono",
+ "codex-protocol",
+ "codex-utils-rustls-provider",
+ "eventsource-stream",
+ "futures",
+ "http 1.4.0",
+ "kv-code-client",
+ "pretty_assertions",
+ "regex-lite",
+ "reqwest 0.12.28",
+ "schemars 0.8.22",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-test",
+ "tokio-tungstenite",
+ "tokio-util",
+ "tracing",
+ "tungstenite",
+ "url",
+ "wiremock",
+]
+
+[[package]]
+name = "kv-code-backend-openapi-models"
+version = "0.0.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "serde_with",
+]
+
+[[package]]
+name = "kv-code-cli"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "app_test_support",
+ "assert_cmd",
+ "assert_matches",
+ "clap",
+ "clap_complete",
+ "codex-app-server",
+ "codex-app-server-daemon",
+ "codex-app-server-protocol",
+ "codex-app-server-test-client",
+ "codex-arg0",
+ "codex-chatgpt",
+ "codex-cloud-tasks",
+ "codex-config",
+ "codex-core",
+ "codex-core-plugins",
+ "codex-exec",
+ "codex-exec-server",
+ "codex-execpolicy",
+ "codex-features",
+ "codex-git-utils",
+ "codex-login",
+ "codex-memories-write",
+ "codex-model-provider",
+ "codex-models-manager",
+ "codex-plugin",
+ "codex-protocol",
+ "codex-responses-api-proxy",
+ "codex-rmcp-client",
+ "codex-rollout",
+ "codex-rollout-trace",
+ "codex-sandboxing",
+ "codex-state",
+ "codex-stdio-to-uds",
+ "codex-terminal-detection",
+ "codex-tui",
+ "codex-utils-absolute-path",
+ "codex-utils-cargo-bin",
+ "codex-utils-cli",
+ "codex-utils-path",
+ "codex-windows-sandbox",
+ "crossterm",
+ "http 1.4.0",
+ "insta",
+ "kv-code-api",
+ "kv-code-home",
+ "kv-code-install-context",
+ "kv-code-mcp",
+ "kv-code-mcp-server",
+ "libc",
+ "os_info",
+ "owo-colors",
+ "predicates",
+ "pretty_assertions",
+ "regex-lite",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "supports-color 3.0.2",
+ "sys-locale",
+ "tempfile",
+ "tokio",
+ "toml 0.9.11+spec-1.1.0",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
+ "unicode-segmentation",
+ "url",
+ "which 8.0.0",
+ "windows-sys 0.52.0",
+ "wiremock",
+]
+
+[[package]]
+name = "kv-code-client"
+version = "0.0.0"
+dependencies = [
+ "bytes",
+ "codex-utils-cargo-bin",
+ "codex-utils-rustls-provider",
+ "eventsource-stream",
+ "futures",
+ "http 1.4.0",
+ "opentelemetry",
+ "opentelemetry_sdk",
+ "pretty_assertions",
+ "rand 0.9.3",
+ "rcgen",
+ "reqwest 0.12.28",
+ "rustls",
+ "rustls-native-certs",
+ "rustls-pki-types",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "system-configuration",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
+ "windows-sys 0.52.0",
+ "zstd 0.13.3",
+]
+
+[[package]]
+name = "kv-code-experimental-api-macros"
+version = "0.0.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
+name = "kv-code-home"
+version = "0.0.0"
+dependencies = [
+ "codex-extension-api",
+ "codex-utils-absolute-path",
+ "pretty_assertions",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
+name = "kv-code-install-context"
+version = "0.0.0"
+dependencies = [
+ "codex-utils-absolute-path",
+ "codex-utils-home-dir",
+ "pretty_assertions",
+ "tempfile",
+]
+
+[[package]]
+name = "kv-code-mcp"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "arc-swap",
+ "async-channel",
+ "codex-async-utils",
+ "codex-config",
+ "codex-connectors",
+ "codex-exec-server",
+ "codex-login",
+ "codex-model-provider",
+ "codex-otel",
+ "codex-plugin",
+ "codex-protocol",
+ "codex-rmcp-client",
+ "codex-utils-path-uri",
+ "codex-utils-plugins",
+ "futures",
+ "kv-code-api",
+ "pretty_assertions",
+ "regex-lite",
+ "rmcp",
+ "serde",
+ "serde_json",
+ "sha1 0.10.6",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "url",
+]
+
+[[package]]
+name = "kv-code-mcp-extension"
+version = "0.0.0"
+dependencies = [
+ "codex-config",
+ "codex-connectors-extension",
+ "codex-core",
+ "codex-core-plugins",
+ "codex-exec-server",
+ "codex-extension-api",
+ "codex-features",
+ "codex-login",
+ "codex-plugin",
+ "codex-protocol",
+ "codex-utils-absolute-path",
+ "codex-utils-path-uri",
+ "kv-code-mcp",
+ "pretty_assertions",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "kv-code-mcp-server"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "codex-arg0",
+ "codex-config",
+ "codex-core",
+ "codex-exec-server",
+ "codex-extension-api",
+ "codex-login",
+ "codex-protocol",
+ "codex-shell-command",
+ "codex-utils-absolute-path",
+ "codex-utils-cli",
+ "codex-utils-json-to-toml",
+ "core_test_support",
+ "kv-code-home",
+ "mcp_test_support",
+ "os_info",
+ "pretty_assertions",
+ "rmcp",
+ "schemars 0.8.22",
+ "serde",
+ "serde_json",
+ "shlex",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "wiremock",
 ]
 
 [[package]]
@@ -9100,10 +9100,10 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "codex-login",
- "kv-code-mcp-server",
  "codex-terminal-detection",
  "codex-utils-cargo-bin",
  "core_test_support",
+ "kv-code-mcp-server",
  "os_info",
  "pretty_assertions",
  "rmcp",
@@ -9317,6 +9317,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "nix"
+version = "0.31.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf20d2fde8ff38632c426f1165ed7436270b44f199fc55284c38276f9db47c3d"
+dependencies = [
+ "bitflags 2.10.0",
+ "cfg-if",
+ "cfg_aliases 0.2.1",
+ "libc",
+]
+
+[[package]]
 name = "nom"
 version = "7.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9380,7 +9392,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -9931,13 +9943,13 @@ dependencies = [
 
 [[package]]
 name = "os_info"
-version = "3.14.0"
+version = "3.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4022a17595a00d6a369236fdae483f0de7f0a339960a53118b818238e132224"
+checksum = "9cf20a545b305cf1da722b236b5155c9bb35f1d5ceb28c048bd96ca842f41b5b"
 dependencies = [
  "android_system_properties",
  "log",
- "nix 0.30.1",
+ "nix 0.31.3",
  "objc2",
  "objc2-foundation",
  "objc2-ui-kit",
@@ -9952,7 +9964,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d8fae84b431384b68627d0f9b3b1245fcf9f46f6c0e3dc902e9dce64edd1967"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.45.0",
 ]
 
 [[package]]
@@ -11682,7 +11694,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -11741,7 +11753,7 @@ dependencies = [
  "security-framework 3.5.1",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -12638,7 +12650,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a766e1110788c36f4fa1c2b71b387a7815aa65f88ce0229841826633d93723e"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -13277,7 +13289,7 @@ dependencies = [
  "getrandom 0.4.2",
  "once_cell",
  "rustix 1.1.4",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -14872,7 +14884,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
