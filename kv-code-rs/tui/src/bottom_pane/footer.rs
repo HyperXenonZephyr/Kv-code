@@ -1005,14 +1005,35 @@ fn build_columns(entries: Vec<Line<'static>>) -> Vec<Line<'static>> {
         .collect()
 }
 
-pub(crate) fn context_window_line(percent: Option<i64>, used_tokens: Option<i64>) -> Line<'static> {
+pub(crate) fn context_window_line(
+    percent: Option<i64>,
+    used_tokens: Option<i64>,
+    window_tokens: Option<i64>,
+) -> Line<'static> {
     if let Some(percent) = percent {
         let percent = percent.clamp(0, 100);
-        return Line::from(vec![Span::from(format!("{percent}% context left")).dim()]);
+        let mut parts = vec![Span::from(format!("{percent}% context left")).dim()];
+        if let (Some(used), Some(window)) = (used_tokens, window_tokens) {
+            let used_fmt = format_tokens_compact(used);
+            let window_fmt = format_tokens_compact(window);
+            parts.push(" · ".dim());
+            parts.push(Span::from(format!("{used_fmt}/{window_fmt} used")).dim());
+        } else if let Some(tokens) = used_tokens {
+            let used_fmt = format_tokens_compact(tokens);
+            parts.push(" · ".dim());
+            parts.push(Span::from(format!("{used_fmt} used")).dim());
+        }
+        return Line::from(parts);
     }
 
     if let Some(tokens) = used_tokens {
         let used_fmt = format_tokens_compact(tokens);
+        if let Some(window) = window_tokens {
+            let window_fmt = format_tokens_compact(window);
+            return Line::from(vec![
+                Span::from(format!("{used_fmt}/{window_fmt} used")).dim(),
+            ]);
+        }
         return Line::from(vec![Span::from(format!("{used_fmt} used")).dim()]);
     }
 
@@ -1303,7 +1324,7 @@ mod tests {
             /*width*/ 80,
             &props,
             /*collaboration_mode_indicator*/ None,
-            context_window_line(percent, used_tokens),
+            context_window_line(percent, used_tokens, /*window_tokens*/ None),
         );
     }
 
@@ -1489,7 +1510,9 @@ mod tests {
             width,
             props,
             collaboration_mode_indicator,
-            context_window_line(/*percent*/ None, /*used_tokens*/ None),
+            context_window_line(
+                /*percent*/ None, /*used_tokens*/ None, /*window_tokens*/ None,
+            ),
         );
     }
 
@@ -1547,7 +1570,9 @@ mod tests {
             props,
             collaboration_mode_indicator,
             ide_context_active,
-            context_window_line(/*percent*/ None, /*used_tokens*/ None),
+            context_window_line(
+                /*percent*/ None, /*used_tokens*/ None, /*window_tokens*/ None,
+            ),
         );
         assert_snapshot!(name, terminal.backend());
     }
@@ -1881,7 +1906,11 @@ mod tests {
             /*width*/ 120,
             &props,
             Some(CollaborationModeIndicator::Plan),
-            context_window_line(Some(50), /*used_tokens*/ None),
+            context_window_line(
+                Some(50),
+                /*used_tokens*/ None,
+                /*window_tokens*/ None,
+            ),
         );
 
         snapshot_footer_with_indicators(
@@ -1912,7 +1941,11 @@ mod tests {
             /*width*/ 120,
             &props,
             Some(CollaborationModeIndicator::Plan),
-            context_window_line(Some(50), /*used_tokens*/ None),
+            context_window_line(
+                Some(50),
+                /*used_tokens*/ None,
+                /*window_tokens*/ None,
+            ),
         );
 
         let props = FooterProps {
@@ -1936,7 +1969,11 @@ mod tests {
             /*width*/ 120,
             &props,
             /*collaboration_mode_indicator*/ None,
-            context_window_line(Some(50), /*used_tokens*/ None),
+            context_window_line(
+                Some(50),
+                /*used_tokens*/ None,
+                /*window_tokens*/ None,
+            ),
         );
 
         let props = FooterProps {
@@ -1961,7 +1998,11 @@ mod tests {
             /*width*/ 40,
             &props,
             Some(CollaborationModeIndicator::Plan),
-            context_window_line(Some(50), /*used_tokens*/ None),
+            context_window_line(
+                Some(50),
+                /*used_tokens*/ None,
+                /*window_tokens*/ None,
+            ),
         );
 
         let props = FooterProps {
@@ -2023,7 +2064,11 @@ mod tests {
             /*width*/ 80,
             &props,
             Some(CollaborationModeIndicator::Plan),
-            context_window_line(Some(50), /*used_tokens*/ None),
+            context_window_line(
+                Some(50),
+                /*used_tokens*/ None,
+                /*window_tokens*/ None,
+            ),
         );
         let collapsed = screen.split_whitespace().collect::<Vec<_>>().join(" ");
         assert!(

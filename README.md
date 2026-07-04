@@ -12,6 +12,13 @@ product identity is KV Code.
 
 ## Quickstart
 
+Install the npm launcher:
+
+```shell
+npm install -g @hyperxenonzephyr/kv-code
+kv-code --help
+```
+
 Build the CLI from source:
 
 ```shell
@@ -38,12 +45,50 @@ KV Code adds a workspace snapshot command for fast handoff and debugging:
 ```shell
 kv-code workspace
 kv-code workspace --json
+kv-code workspace --brief --top 6
 kv-code workspace D:\work\project --top 20 --max-files 50000
 ```
 
 It reports the inspected path, KV Code home, Git branch, working tree change
 counts, file counts, skipped heavy directories, total size, and top file types.
-Use `--json` when feeding the snapshot to scripts or other tools.
+Use `--brief` for low-token model handoffs, `--top` to cap file-type output,
+and `--json` when feeding the snapshot to scripts or other tools.
+
+KV Code also includes local utility commands that do not call an AI service:
+
+```shell
+kv-code tools hash "hello"
+kv-code tools base64 "hello"
+kv-code tools url "a value with spaces"
+kv-code tools json --file package.json
+kv-code tools json --summary --file package.json
+kv-code tools uuid -n 3
+kv-code tools time --utc
+```
+
+## Model Providers
+
+KV Code can be configured for OpenAI and OpenAI-compatible Responses API
+providers. Use the provider helper to print templates for common services:
+
+```shell
+kv-code providers list
+kv-code providers show openai
+kv-code providers show azure-openai
+kv-code providers show openrouter
+kv-code providers show anthropic
+kv-code providers show gemini
+kv-code providers show groq
+kv-code providers show deepseek
+kv-code providers show xai
+kv-code providers show ollama
+kv-code providers show lmstudio
+```
+
+Copy the generated TOML into `~/.kv-code/config.toml` and set the referenced
+API key environment variable. Some vendors expose OpenAI-compatible model
+endpoints through a gateway; use a Responses-compatible endpoint when the
+vendor's native API is not directly compatible.
 
 ## Configuration
 

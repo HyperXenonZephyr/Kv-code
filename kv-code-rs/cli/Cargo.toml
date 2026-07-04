@@ -23,6 +23,8 @@ workspace = true
 
 [dependencies]
 anyhow = { workspace = true }
+base64 = { workspace = true }
+chrono = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
 codex-app-server = { workspace = true }
@@ -71,6 +73,7 @@ owo-colors = { workspace = true }
 regex-lite = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+sha2 = { workspace = true }
 supports-color = { workspace = true }
 sys-locale = { workspace = true }
 tempfile = { workspace = true }
@@ -89,6 +92,8 @@ tracing-appender = { workspace = true }
 tracing-subscriber = { workspace = true }
 unicode-segmentation = { workspace = true }
 url = { workspace = true }
+urlencoding = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }
 which = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]

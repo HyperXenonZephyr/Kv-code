@@ -1,3 +1,7 @@
+use base64::Engine as _;
+use base64::engine::general_purpose;
+use chrono::SecondsFormat;
+use chrono::Utc;
 use clap::Args;
 use clap::CommandFactory;
 use clap::Parser;
@@ -37,10 +41,14 @@ use codex_utils_cli::CliConfigOverrides;
 use codex_utils_cli::ProfileV2Name;
 use codex_utils_cli::SharedCliOptions;
 use owo_colors::OwoColorize;
+use sha2::Digest;
+use sha2::Sha256;
+use sha2::Sha512;
 use std::collections::BTreeMap;
 use std::collections::HashSet;
 use std::fs;
 use std::io::IsTerminal;
+use std::io::Read;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
@@ -215,6 +223,12 @@ enum Subcommand {
 
     /// Print a practical project snapshot for handoff, debugging, or agent context.
     Workspace(WorkspaceCommand),
+
+    /// Local developer utilities that do not call an AI service.
+    Tools(ToolsCommand),
+
+    /// Print model-provider templates for mainstream AI APIs.
+    Providers(ProvidersCommand),
 }
 
 #[derive(Debug, Parser)]
@@ -234,13 +248,152 @@ struct WorkspaceCommand {
     #[arg(long, default_value_t = false)]
     json: bool,
 
+    /// Emit a compact one-line report for prompts and handoffs.
+    #[arg(long, default_value_t = false)]
+    brief: bool,
+
     /// Number of file extensions to show in text output.
-    #[arg(long = "top", default_value_t = 12)]
+    #[arg(long = "top", default_value_t = 8)]
     top_extensions: usize,
 
     /// Stop scanning after this many files to avoid expensive walks in huge trees.
     #[arg(long = "max-files", default_value_t = 25_000)]
     max_files: usize,
+}
+
+#[derive(Debug, Parser)]
+struct ToolsCommand {
+    #[clap(subcommand)]
+    subcommand: ToolsSubcommand,
+}
+
+#[derive(Debug, clap::Subcommand)]
+enum ToolsSubcommand {
+    /// Calculate SHA-256 or SHA-512 for text, stdin, or a file.
+    Hash(ToolHashCommand),
+
+    /// Base64 encode or decode text, stdin, or a file.
+    Base64(ToolBase64Command),
+
+    /// URL percent-encode or decode text.
+    Url(ToolUrlCommand),
+
+    /// Format, minify, or validate JSON.
+    Json(ToolJsonCommand),
+
+    /// Generate random UUID v4 values.
+    Uuid(ToolUuidCommand),
+
+    /// Print timestamps in useful formats.
+    Time(ToolTimeCommand),
+}
+
+#[derive(Debug, Parser)]
+struct ToolHashCommand {
+    /// Hash algorithm.
+    #[arg(long, value_enum, default_value = "sha256")]
+    algorithm: HashAlgorithm,
+
+    /// Text to hash. Reads stdin when omitted unless --file is provided.
+    text: Option<String>,
+
+    /// File to hash.
+    #[arg(long)]
+    file: Option<PathBuf>,
+}
+
+#[derive(Debug, Clone, Copy, clap::ValueEnum)]
+enum HashAlgorithm {
+    Sha256,
+    Sha512,
+}
+
+#[derive(Debug, Parser)]
+struct ToolBase64Command {
+    /// Decode instead of encode.
+    #[arg(long, short = 'd', default_value_t = false)]
+    decode: bool,
+
+    /// Text to encode/decode. Reads stdin when omitted unless --file is provided.
+    text: Option<String>,
+
+    /// File to encode/decode.
+    #[arg(long)]
+    file: Option<PathBuf>,
+}
+
+#[derive(Debug, Parser)]
+struct ToolUrlCommand {
+    /// Decode instead of encode.
+    #[arg(long, short = 'd', default_value_t = false)]
+    decode: bool,
+
+    /// Text to encode/decode. Reads stdin when omitted.
+    text: Option<String>,
+}
+
+#[derive(Debug, Parser)]
+struct ToolJsonCommand {
+    /// Minify instead of pretty-printing.
+    #[arg(long, default_value_t = false)]
+    minify: bool,
+
+    /// Print a compact structural summary instead of the JSON body.
+    #[arg(long, default_value_t = false)]
+    summary: bool,
+
+    /// Only validate JSON and print a short status line.
+    #[arg(long, default_value_t = false)]
+    check: bool,
+
+    /// JSON text. Reads stdin when omitted unless --file is provided.
+    text: Option<String>,
+
+    /// JSON file to read.
+    #[arg(long)]
+    file: Option<PathBuf>,
+}
+
+#[derive(Debug, Parser)]
+struct ToolUuidCommand {
+    /// Number of UUIDs to generate.
+    #[arg(long, short = 'n', default_value_t = 1)]
+    count: usize,
+}
+
+#[derive(Debug, Parser)]
+struct ToolTimeCommand {
+    /// Print Unix seconds.
+    #[arg(long, default_value_t = false)]
+    unix: bool,
+
+    /// Print RFC3339 UTC timestamp.
+    #[arg(long, default_value_t = false)]
+    utc: bool,
+}
+
+#[derive(Debug, Parser)]
+struct ProvidersCommand {
+    #[clap(subcommand)]
+    subcommand: Option<ProvidersSubcommand>,
+}
+
+#[derive(Debug, clap::Subcommand)]
+enum ProvidersSubcommand {
+    /// List built-in provider templates.
+    List,
+
+    /// Print one provider TOML snippet.
+    Show(ProviderShowCommand),
+
+    /// Print all provider TOML snippets.
+    Snippets,
+}
+
+#[derive(Debug, Parser)]
+struct ProviderShowCommand {
+    /// Provider id, for example openrouter or anthropic.
+    id: String,
 }
 
 #[derive(Debug, Default)]
@@ -1477,6 +1630,22 @@ async fn cli_main(
             )?;
             run_workspace_command(workspace_cli)?;
         }
+        Some(Subcommand::Tools(tools_cli)) => {
+            reject_remote_mode_for_subcommand(
+                root_remote.as_deref(),
+                root_remote_auth_token_env.as_deref(),
+                "tools",
+            )?;
+            run_tools_command(tools_cli)?;
+        }
+        Some(Subcommand::Providers(providers_cli)) => {
+            reject_remote_mode_for_subcommand(
+                root_remote.as_deref(),
+                root_remote_auth_token_env.as_deref(),
+                "providers",
+            )?;
+            run_providers_command(providers_cli)?;
+        }
         Some(Subcommand::Cloud(mut cloud_cli)) => {
             reject_remote_mode_for_subcommand(
                 root_remote.as_deref(),
@@ -1703,22 +1872,21 @@ async fn cli_main(
 }
 
 fn run_workspace_command(cmd: WorkspaceCommand) -> anyhow::Result<()> {
-    let root = cmd
-        .path
-        .canonicalize()
-        .unwrap_or_else(|_| cmd.path.clone());
+    let root = cmd.path.canonicalize().unwrap_or_else(|_| cmd.path.clone());
     let mut scan = WorkspaceScan::default();
     scan_workspace(&root, &mut scan, cmd.max_files)?;
     let git = workspace_git_status(&root);
     let kv_home = find_codex_home().ok().map(|path| path.to_path_buf());
 
     if cmd.json {
-        let extensions = top_extensions(&scan, usize::MAX)
+        let extensions = top_extensions(&scan, cmd.top_extensions)
             .into_iter()
-            .map(|(extension, count)| serde_json::json!({
-                "extension": extension,
-                "files": count,
-            }))
+            .map(|(extension, count)| {
+                serde_json::json!({
+                    "extension": extension,
+                    "files": count,
+                })
+            })
             .collect::<Vec<_>>();
         let git_json = git.as_ref().map(|git| {
             serde_json::json!({
@@ -1748,6 +1916,11 @@ fn run_workspace_command(cmd: WorkspaceCommand) -> anyhow::Result<()> {
             "git": git_json,
         });
         println!("{}", serde_json::to_string_pretty(&payload)?);
+        return Ok(());
+    }
+
+    if cmd.brief {
+        print_workspace_brief(&root, &scan, git.as_ref(), cmd.top_extensions);
         return Ok(());
     }
 
@@ -1784,6 +1957,331 @@ fn run_workspace_command(cmd: WorkspaceCommand) -> anyhow::Result<()> {
         }
     }
     Ok(())
+}
+
+fn print_workspace_brief(
+    root: &Path,
+    scan: &WorkspaceScan,
+    git: Option<&WorkspaceGitStatus>,
+    top_extensions_limit: usize,
+) {
+    let truncated = if scan.truncated {
+        " truncated=true"
+    } else {
+        ""
+    };
+    let git_summary = git.map_or_else(
+        || "git=none".to_string(),
+        |git| {
+            let branch = git.branch.as_deref().unwrap_or("<unknown>");
+            format!(
+                "git=branch:{branch},+{},~{},-{},?{}",
+                git.added, git.modified, git.deleted, git.untracked
+            )
+        },
+    );
+    let types = top_extensions(scan, top_extensions_limit)
+        .into_iter()
+        .map(|(extension, count)| format!("{extension}:{count}"))
+        .collect::<Vec<_>>()
+        .join(",");
+    println!(
+        "workspace path={} files={} dirs={} size={}{} {git_summary} types={types}",
+        root.display(),
+        scan.files,
+        scan.dirs,
+        format_bytes(scan.bytes),
+        truncated
+    );
+}
+
+fn run_tools_command(cmd: ToolsCommand) -> anyhow::Result<()> {
+    match cmd.subcommand {
+        ToolsSubcommand::Hash(cmd) => {
+            let bytes = read_tool_input_bytes(cmd.text, cmd.file.as_deref())?;
+            let digest = match cmd.algorithm {
+                HashAlgorithm::Sha256 => {
+                    let digest = Sha256::digest(&bytes);
+                    hex_lower(&digest[..])
+                }
+                HashAlgorithm::Sha512 => {
+                    let digest = Sha512::digest(&bytes);
+                    hex_lower(&digest[..])
+                }
+            };
+            println!("{digest}");
+        }
+        ToolsSubcommand::Base64(cmd) => {
+            let bytes = read_tool_input_bytes(cmd.text, cmd.file.as_deref())?;
+            if cmd.decode {
+                let decoded = general_purpose::STANDARD
+                    .decode(strip_ascii_whitespace(&bytes))
+                    .map_err(|err| anyhow::anyhow!("invalid base64 input: {err}"))?;
+                write_tool_bytes(&decoded)?;
+            } else {
+                println!("{}", general_purpose::STANDARD.encode(bytes));
+            }
+        }
+        ToolsSubcommand::Url(cmd) => {
+            let text = read_tool_input_string(cmd.text, None)?;
+            if cmd.decode {
+                println!("{}", urlencoding::decode(text.trim_end())?);
+            } else {
+                println!("{}", urlencoding::encode(text.trim_end()));
+            }
+        }
+        ToolsSubcommand::Json(cmd) => {
+            let text = read_tool_input_string(cmd.text, cmd.file.as_deref())?;
+            let value: serde_json::Value = serde_json::from_str(&text)
+                .map_err(|err| anyhow::anyhow!("invalid JSON: {err}"))?;
+            if cmd.check {
+                println!("valid JSON");
+            } else if cmd.summary {
+                println!("{}", json_summary(&value));
+            } else if cmd.minify {
+                println!("{}", serde_json::to_string(&value)?);
+            } else {
+                println!("{}", serde_json::to_string_pretty(&value)?);
+            }
+        }
+        ToolsSubcommand::Uuid(cmd) => {
+            let count = cmd.count.max(1);
+            for _ in 0..count {
+                println!("{}", uuid::Uuid::new_v4());
+            }
+        }
+        ToolsSubcommand::Time(cmd) => {
+            let now = Utc::now();
+            if cmd.unix {
+                println!("{}", now.timestamp());
+            } else if cmd.utc {
+                println!("{}", now.to_rfc3339_opts(SecondsFormat::Secs, true));
+            } else {
+                println!("unix: {}", now.timestamp());
+                println!("utc: {}", now.to_rfc3339_opts(SecondsFormat::Secs, true));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn read_tool_input_bytes(text: Option<String>, file: Option<&Path>) -> anyhow::Result<Vec<u8>> {
+    if let Some(path) = file {
+        return fs::read(path).map_err(anyhow::Error::from);
+    }
+    if let Some(text) = text {
+        return Ok(text.into_bytes());
+    }
+    if std::io::stdin().is_terminal() {
+        anyhow::bail!("provide text, --file, or pipe data on stdin");
+    }
+    let mut bytes = Vec::new();
+    std::io::stdin().read_to_end(&mut bytes)?;
+    Ok(bytes)
+}
+
+fn read_tool_input_string(text: Option<String>, file: Option<&Path>) -> anyhow::Result<String> {
+    let bytes = read_tool_input_bytes(text, file)?;
+    String::from_utf8(bytes).map_err(|err| anyhow::anyhow!("input is not UTF-8: {err}"))
+}
+
+fn write_tool_bytes(bytes: &[u8]) -> anyhow::Result<()> {
+    let mut stdout = std::io::stdout().lock();
+    stdout.write_all(bytes)?;
+    if !bytes.ends_with(b"\n") {
+        stdout.write_all(b"\n")?;
+    }
+    Ok(())
+}
+
+fn strip_ascii_whitespace(bytes: &[u8]) -> Vec<u8> {
+    bytes
+        .iter()
+        .copied()
+        .filter(|byte| !byte.is_ascii_whitespace())
+        .collect()
+}
+
+fn hex_lower(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut out = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        out.push(HEX[(byte >> 4) as usize] as char);
+        out.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    out
+}
+
+fn json_summary(value: &serde_json::Value) -> String {
+    match value {
+        serde_json::Value::Null => "null".to_string(),
+        serde_json::Value::Bool(_) => "bool".to_string(),
+        serde_json::Value::Number(_) => "number".to_string(),
+        serde_json::Value::String(value) => format!("string chars={}", value.chars().count()),
+        serde_json::Value::Array(items) => {
+            let first = items
+                .first()
+                .map(json_summary)
+                .unwrap_or_else(|| "empty".to_string());
+            format!("array len={} first={first}", items.len())
+        }
+        serde_json::Value::Object(map) => {
+            let keys = map.keys().take(12).cloned().collect::<Vec<_>>();
+            let suffix = if map.len() > keys.len() { ",..." } else { "" };
+            format!("object keys={} [{}{}]", map.len(), keys.join(","), suffix)
+        }
+    }
+}
+
+fn run_providers_command(cmd: ProvidersCommand) -> anyhow::Result<()> {
+    match cmd.subcommand.unwrap_or(ProvidersSubcommand::List) {
+        ProvidersSubcommand::List => {
+            println!("KV Code model provider templates");
+            println!("Use `kv-code providers show <id>` to print a config.toml snippet.");
+            for template in provider_templates() {
+                println!(
+                    "{:<14} {:<18} {}",
+                    template.id, template.env_key, template.name
+                );
+            }
+        }
+        ProvidersSubcommand::Show(cmd) => {
+            let Some(template) = provider_templates()
+                .into_iter()
+                .find(|template| template.id == cmd.id)
+            else {
+                anyhow::bail!(
+                    "unknown provider `{}`; run `kv-code providers list`",
+                    cmd.id
+                );
+            };
+            println!("{}", provider_template_toml(&template));
+        }
+        ProvidersSubcommand::Snippets => {
+            for template in provider_templates() {
+                println!("{}", provider_template_toml(&template));
+            }
+        }
+    }
+    Ok(())
+}
+
+#[derive(Clone, Copy)]
+struct ProviderTemplate {
+    id: &'static str,
+    name: &'static str,
+    base_url: &'static str,
+    env_key: &'static str,
+    model: &'static str,
+    note: &'static str,
+}
+
+fn provider_templates() -> Vec<ProviderTemplate> {
+    vec![
+        ProviderTemplate {
+            id: "openai",
+            name: "OpenAI",
+            base_url: "https://api.openai.com/v1",
+            env_key: "OPENAI_API_KEY",
+            model: "gpt-5.2",
+            note: "Built-in provider. Use this snippet only when you want explicit config.",
+        },
+        ProviderTemplate {
+            id: "azure-openai",
+            name: "Azure OpenAI",
+            base_url: "https://YOUR_RESOURCE.openai.azure.com/openai/v1",
+            env_key: "AZURE_OPENAI_API_KEY",
+            model: "YOUR_DEPLOYMENT_NAME",
+            note: "Replace YOUR_RESOURCE and model with your Azure deployment name.",
+        },
+        ProviderTemplate {
+            id: "openrouter",
+            name: "OpenRouter",
+            base_url: "https://openrouter.ai/api/v1",
+            env_key: "OPENROUTER_API_KEY",
+            model: "openai/gpt-5.2",
+            note: "Use a model id supported by your OpenRouter account.",
+        },
+        ProviderTemplate {
+            id: "anthropic",
+            name: "Anthropic-compatible gateway",
+            base_url: "https://api.anthropic.com/v1",
+            env_key: "ANTHROPIC_API_KEY",
+            model: "claude-sonnet-4-5",
+            note: "Requires a Responses-compatible or OpenAI-compatible gateway for Anthropic models.",
+        },
+        ProviderTemplate {
+            id: "gemini",
+            name: "Google Gemini-compatible gateway",
+            base_url: "https://generativelanguage.googleapis.com/v1beta/openai",
+            env_key: "GEMINI_API_KEY",
+            model: "gemini-2.5-pro",
+            note: "Use the OpenAI-compatible Gemini endpoint or a Responses-compatible gateway.",
+        },
+        ProviderTemplate {
+            id: "groq",
+            name: "Groq-compatible gateway",
+            base_url: "https://api.groq.com/openai/v1",
+            env_key: "GROQ_API_KEY",
+            model: "openai/gpt-oss-120b",
+            note: "Use a model id available in your Groq account.",
+        },
+        ProviderTemplate {
+            id: "deepseek",
+            name: "DeepSeek-compatible gateway",
+            base_url: "https://api.deepseek.com/v1",
+            env_key: "DEEPSEEK_API_KEY",
+            model: "deepseek-chat",
+            note: "Use a Responses-compatible or OpenAI-compatible gateway for best compatibility.",
+        },
+        ProviderTemplate {
+            id: "xai",
+            name: "xAI-compatible gateway",
+            base_url: "https://api.x.ai/v1",
+            env_key: "XAI_API_KEY",
+            model: "grok-4",
+            note: "Use a model id available in your xAI account.",
+        },
+        ProviderTemplate {
+            id: "ollama",
+            name: "Ollama local",
+            base_url: "http://localhost:11434/v1",
+            env_key: "OLLAMA_API_KEY",
+            model: "gpt-oss:20b",
+            note: "Local providers often do not need an API key; set any non-empty value if your server requires one.",
+        },
+        ProviderTemplate {
+            id: "lmstudio",
+            name: "LM Studio local",
+            base_url: "http://localhost:1234/v1",
+            env_key: "LMSTUDIO_API_KEY",
+            model: "local-model",
+            note: "Start the LM Studio local server first; API key is usually optional locally.",
+        },
+    ]
+}
+
+fn provider_template_toml(template: &ProviderTemplate) -> String {
+    format!(
+        r#"# {name}
+# {note}
+model_provider = "{id}"
+model = "{model}"
+
+[model_providers.{id}]
+name = "{name}"
+base_url = "{base_url}"
+env_key = "{env_key}"
+wire_api = "responses"
+requires_openai_auth = false
+"#,
+        id = template.id,
+        name = template.name,
+        base_url = template.base_url,
+        env_key = template.env_key,
+        model = template.model,
+        note = template.note,
+    )
 }
 
 fn scan_workspace(path: &Path, scan: &mut WorkspaceScan, max_files: usize) -> anyhow::Result<()> {
@@ -2399,6 +2897,8 @@ fn unsupported_subcommand_name_for_strict_config(
         Some(Subcommand::Completion(_)) => Some("completion"),
         Some(Subcommand::Update) => Some("update"),
         Some(Subcommand::Workspace(_)) => Some("workspace"),
+        Some(Subcommand::Tools(_)) => Some("tools"),
+        Some(Subcommand::Providers(_)) => Some("providers"),
         Some(Subcommand::Cloud(_)) => Some("cloud"),
         Some(Subcommand::Sandbox(_)) => Some("sandbox"),
         Some(Subcommand::Debug(_)) => Some("debug"),

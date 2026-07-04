@@ -3,17 +3,35 @@
   "version": "0.0.0-dev",
   "description": "KV Code is a local-first coding agent for terminal workflows.",
   "license": "Apache-2.0",
+  "homepage": "https://github.com/HyperXenonZephyr/Kv-code#readme",
+  "bugs": {
+    "url": "https://github.com/HyperXenonZephyr/Kv-code/issues"
+  },
+  "keywords": [
+    "kv-code",
+    "coding-agent",
+    "terminal",
+    "ai",
+    "developer-tools"
+  ],
   "bin": {
-    "kv-code": "bin/codex.js",
-    "codex": "bin/codex.js"
+    "kv-code": "bin/kv-code.js"
   },
   "type": "module",
   "engines": {
     "node": ">=16"
   },
   "files": [
-    "bin/codex.js"
+    "bin/kv-code.js"
   ],
+  "optionalDependencies": {
+    "@hyperxenonzephyr/kv-code-linux-x64": "0.0.0-dev",
+    "@hyperxenonzephyr/kv-code-linux-arm64": "0.0.0-dev",
+    "@hyperxenonzephyr/kv-code-darwin-x64": "0.0.0-dev",
+    "@hyperxenonzephyr/kv-code-darwin-arm64": "0.0.0-dev",
+    "@hyperxenonzephyr/kv-code-win32-x64": "0.0.0-dev",
+    "@hyperxenonzephyr/kv-code-win32-arm64": "0.0.0-dev"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/HyperXenonZephyr/Kv-code.git",

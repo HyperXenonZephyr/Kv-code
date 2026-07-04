@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stage one or more Codex npm packages for release."""
+"""Stage one or more KV Code npm packages for release."""
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -19,7 +19,7 @@ from typing import Sequence
 REPO_ROOT = Path(__file__).resolve().parent.parent
 BUILD_SCRIPT = REPO_ROOT / "kv-code-cli" / "scripts" / "build_npm_package.py"
 WORKFLOW_NAME = ".github/workflows/rust-release.yml"
-GITHUB_REPO = "openai/codex"
+GITHUB_REPO = "HyperXenonZephyr/Kv-code"
 BINARY_TARGETS = (
     "x86_64-unknown-linux-musl",
     "aarch64-unknown-linux-musl",
@@ -29,16 +29,16 @@ BINARY_TARGETS = (
     "aarch64-pc-windows-msvc",
 )
 
-_SPEC = importlib.util.spec_from_file_location("codex_build_npm_package", BUILD_SCRIPT)
+_SPEC = importlib.util.spec_from_file_location("kv_code_build_npm_package", BUILD_SCRIPT)
 if _SPEC is None or _SPEC.loader is None:
     raise RuntimeError(f"Unable to load module from {BUILD_SCRIPT}")
 _BUILD_MODULE = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(_BUILD_MODULE)
 PACKAGE_NATIVE_COMPONENTS = getattr(_BUILD_MODULE, "PACKAGE_NATIVE_COMPONENTS", {})
 PACKAGE_EXPANSIONS = getattr(_BUILD_MODULE, "PACKAGE_EXPANSIONS", {})
-CODEX_PLATFORM_PACKAGES = getattr(_BUILD_MODULE, "CODEX_PLATFORM_PACKAGES", {})
-CODEX_PACKAGE_COMPONENT = getattr(
-    _BUILD_MODULE, "CODEX_PACKAGE_COMPONENT", "codex-package"
+KV_CODE_PLATFORM_PACKAGES = getattr(_BUILD_MODULE, "KV_CODE_PLATFORM_PACKAGES", {})
+KV_CODE_PACKAGE_COMPONENT = getattr(
+    _BUILD_MODULE, "KV_CODE_PACKAGE_COMPONENT", "codex-package"
 )
 
 
@@ -213,7 +213,7 @@ def install_from_workflow_artifacts(
 ) -> None:
     artifacts = select_target_artifacts(workflow_id, components)
     download_artifacts(workflow_id, artifacts_dir, artifacts)
-    if CODEX_PACKAGE_COMPONENT in components:
+    if KV_CODE_PACKAGE_COMPONENT in components:
         install_kv_code_package_archives(artifacts_dir, vendor_dir, BINARY_TARGETS)
     install_binary_components(
         artifacts_dir,
@@ -226,7 +226,7 @@ def select_target_artifacts(
     workflow_id: str,
     components: Sequence[str],
 ) -> list[WorkflowArtifact]:
-    needs_target_artifacts = CODEX_PACKAGE_COMPONENT in components or any(
+    needs_target_artifacts = KV_CODE_PACKAGE_COMPONENT in components or any(
         component in BINARY_COMPONENTS for component in components
     )
     if not needs_target_artifacts:
@@ -318,7 +318,7 @@ def install_kv_code_package_archives(
         return
 
     print(
-        "Installing Codex package archives for targets: " + ", ".join(targets),
+        "Installing KV Code package archives for targets: " + ", ".join(targets),
         flush=True,
     )
     max_workers = min(len(targets), max(1, (os.cpu_count() or 1)))
@@ -472,9 +472,9 @@ def run_command(cmd: list[str]) -> None:
 
 
 def tarball_name_for_package(package: str, version: str) -> str:
-    if package in CODEX_PLATFORM_PACKAGES:
-        platform = package.removeprefix("codex-")
-        return f"codex-npm-{platform}-{version}.tgz"
+    if package in KV_CODE_PLATFORM_PACKAGES:
+        platform = package.removeprefix("kv-code-")
+        return f"kv-code-npm-{platform}-{version}.tgz"
     return f"{package}-npm-{version}.tgz"
 
 
