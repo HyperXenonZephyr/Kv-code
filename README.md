@@ -15,14 +15,14 @@ product identity is KV Code.
 Build the CLI from source:
 
 ```shell
-cd codex-rs
-cargo build -p codex-cli --bin kv-code
+cd kv-code-rs
+cargo build -p kv-code-cli --bin kv-code
 ```
 
 Run it locally:
 
 ```shell
-cargo run -p codex-cli --bin kv-code -- --help
+cargo run -p kv-code-cli --bin kv-code -- --help
 ```
 
 The preferred command is:

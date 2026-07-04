@@ -69,13 +69,13 @@ jobs:
               "win_arm64",
           }
           expected = {
-              f"openai_codex_cli_bin-{version}-py3-none-{tag}.whl"
+              f"kv_code_cli_bin-{version}-py3-none-{tag}.whl"
               for tag in tags
           }
 
           try:
               with urllib.request.urlopen(
-                  f"https://pypi.org/pypi/openai-codex-cli-bin/{version}/json",
+                  f"https://pypi.org/pypi/openai-kv-code-cli-bin/{version}/json",
                   timeout=30,
               ) as response:
                   payload = json.load(response)

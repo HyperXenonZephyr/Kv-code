@@ -21,7 +21,7 @@
 
       # Read the version from the workspace Cargo.toml (the single source of
       # truth used by the release workflow).
-      cargoToml = builtins.fromTOML (builtins.readFile ./codex-rs/Cargo.toml);
+      cargoToml = builtins.fromTOML (builtins.readFile ./kv-code-rs/Cargo.toml);
       cargoVersion = cargoToml.workspace.package.version;
 
       # When building from a release commit the Cargo.toml already carries the
@@ -39,7 +39,7 @@
             inherit system;
             overlays = [ rust-overlay.overlays.default ];
           };
-          codex-rs = pkgs.callPackage ./codex-rs {
+          kv-code-rs = pkgs.callPackage ./kv-code-rs {
             inherit version;
             rustPlatform = pkgs.makeRustPlatform {
               cargo = pkgs.rust-bin.stable.latest.minimal;
@@ -48,8 +48,8 @@
           };
         in
         {
-          codex-rs = codex-rs;
-          default = codex-rs;
+          kv-code-rs = kv-code-rs;
+          default = kv-code-rs;
         }
       );
 

@@ -7,9 +7,9 @@ from typing import Any
 
 import tomllib
 
-import openai_codex
-import openai_codex.types as public_types
-from openai_codex import (
+import kv_code
+import kv_code.types as public_types
+from kv_code import (
     ApprovalMode,
     AsyncCodex,
     AsyncThread,
@@ -21,8 +21,8 @@ from openai_codex import (
     TurnHandle,
     TurnResult,
 )
-from openai_codex._initialize_metadata import validate_initialize_metadata
-from openai_codex.types import InitializeResponse
+from kv_code._initialize_metadata import validate_initialize_metadata
+from kv_code.types import InitializeResponse
 
 EXPECTED_ROOT_EXPORTS = [
     "__version__",
@@ -207,14 +207,14 @@ def test_package_and_default_client_versions_follow_project_version() -> None:
     pyproject_path = Path(__file__).resolve().parents[1] / "pyproject.toml"
     pyproject = tomllib.loads(pyproject_path.read_text())
 
-    assert openai_codex.__version__ == pyproject["project"]["version"]
-    assert CodexConfig().client_version == openai_codex.__version__
+    assert kv_code.__version__ == pyproject["project"]["version"]
+    assert CodexConfig().client_version == kv_code.__version__
 
 
 def test_curated_public_api_has_builtin_help_documentation() -> None:
     """The package's normal ``help()`` surface should explain common first-use APIs."""
     documented = {
-        "module": openai_codex,
+        "module": kv_code,
         "Codex": Codex,
         "AsyncCodex": AsyncCodex,
         "CodexConfig": CodexConfig,
@@ -237,24 +237,24 @@ def test_curated_public_api_has_builtin_help_documentation() -> None:
 
 def test_package_includes_py_typed_marker() -> None:
     """The wheel should advertise that inline type information is available."""
-    marker = resources.files("openai_codex").joinpath("py.typed")
+    marker = resources.files("kv_code").joinpath("py.typed")
     assert marker.is_file()
 
 
 def test_package_root_exports_only_public_api() -> None:
     """The package root should expose the supported SDK surface, not internals."""
-    assert openai_codex.__all__ == EXPECTED_ROOT_EXPORTS
-    assert {name: hasattr(openai_codex, name) for name in EXPECTED_ROOT_EXPORTS} == dict.fromkeys(
+    assert kv_code.__all__ == EXPECTED_ROOT_EXPORTS
+    assert {name: hasattr(kv_code, name) for name in EXPECTED_ROOT_EXPORTS} == dict.fromkeys(
         EXPECTED_ROOT_EXPORTS, True
     )
     assert {
-        "CodexClient": hasattr(openai_codex, "CodexClient"),
-        "AsyncCodexClient": hasattr(openai_codex, "AsyncCodexClient"),
-        "InitializeResponse": hasattr(openai_codex, "InitializeResponse"),
-        "ThreadStartParams": hasattr(openai_codex, "ThreadStartParams"),
-        "TurnStartParams": hasattr(openai_codex, "TurnStartParams"),
-        "TurnCompletedNotification": hasattr(openai_codex, "TurnCompletedNotification"),
-        "TurnStatus": hasattr(openai_codex, "TurnStatus"),
+        "CodexClient": hasattr(kv_code, "CodexClient"),
+        "AsyncCodexClient": hasattr(kv_code, "AsyncCodexClient"),
+        "InitializeResponse": hasattr(kv_code, "InitializeResponse"),
+        "ThreadStartParams": hasattr(kv_code, "ThreadStartParams"),
+        "TurnStartParams": hasattr(kv_code, "TurnStartParams"),
+        "TurnCompletedNotification": hasattr(kv_code, "TurnCompletedNotification"),
+        "TurnStatus": hasattr(kv_code, "TurnStatus"),
     } == {
         "CodexClient": False,
         "AsyncCodexClient": False,
@@ -269,7 +269,7 @@ def test_package_root_exports_only_public_api() -> None:
 def test_package_star_import_matches_public_api() -> None:
     """Star imports should follow the same explicit public API list."""
     namespace: dict[str, object] = {}
-    exec("from openai_codex import *", namespace)
+    exec("from kv_code import *", namespace)
 
     exported = set(namespace) - {"__builtins__"}
     assert exported == set(EXPECTED_ROOT_EXPORTS)
@@ -286,7 +286,7 @@ def test_types_module_exports_curated_public_types() -> None:
 def test_types_star_import_matches_public_types() -> None:
     """Star imports from the type module should match its explicit export list."""
     namespace: dict[str, object] = {}
-    exec("from openai_codex.types import *", namespace)
+    exec("from kv_code.types import *", namespace)
 
     exported = set(namespace) - {"__builtins__"}
     assert exported == set(EXPECTED_TYPES_EXPORTS)
@@ -296,11 +296,11 @@ def test_examples_use_public_import_surfaces() -> None:
     """Examples should teach users the public root and type-module imports only."""
     examples_root = Path(__file__).resolve().parents[1] / "examples"
     private_import_markers = [
-        "openai_codex.api",
-        "openai_codex.client",
-        "openai_codex.generated",
-        "openai_codex.models",
-        "openai_codex.retry",
+        "kv_code.api",
+        "kv_code.client",
+        "kv_code.generated",
+        "kv_code.models",
+        "kv_code.retry",
     ]
 
     offenders = {
@@ -538,12 +538,12 @@ def test_lifecycle_methods_are_codex_scoped() -> None:
 
 def test_initialize_metadata_parses_user_agent_shape() -> None:
     """Initialize metadata should accept the legacy user-agent-only payload shape."""
-    payload = InitializeResponse.model_validate({"userAgent": "codex-cli/1.2.3"})
+    payload = InitializeResponse.model_validate({"userAgent": "kv-code-cli/1.2.3"})
     parsed = validate_initialize_metadata(payload)
     assert parsed is payload
-    assert parsed.userAgent == "codex-cli/1.2.3"
+    assert parsed.userAgent == "kv-code-cli/1.2.3"
     assert parsed.serverInfo is not None
-    assert parsed.serverInfo.name == "codex-cli"
+    assert parsed.serverInfo.name == "kv-code-cli"
     assert parsed.serverInfo.version == "1.2.3"
 
 

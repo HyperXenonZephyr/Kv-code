@@ -10,10 +10,10 @@ from _bootstrap import ensure_local_sdk_src, runtime_config
 
 ensure_local_sdk_src()
 
-from openai_codex import (
+from kv_code import (
     Codex,
 )
-from openai_codex.types import (
+from kv_code.types import (
     Personality,
     ReasoningSummary,
 )

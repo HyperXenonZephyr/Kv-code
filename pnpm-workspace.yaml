@@ -1,6 +1,6 @@
 packages:
-  - codex-cli
-  - codex-rs/responses-api-proxy/npm
+  - kv-code-cli
+  - kv-code-rs/responses-api-proxy/npm
   - sdk/typescript
 
 ignoredBuiltDependencies:

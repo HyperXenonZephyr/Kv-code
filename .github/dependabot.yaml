@@ -10,8 +10,8 @@ updates:
       default-days: 7
   - package-ecosystem: cargo
     directories:
-      - codex-rs
-      - codex-rs/*
+      - kv-code-rs
+      - kv-code-rs/*
     schedule:
       interval: weekly
     cooldown:
@@ -23,7 +23,7 @@ updates:
     cooldown:
       default-days: 7
   - package-ecosystem: docker
-    directory: codex-cli
+    directory: kv-code-cli
     schedule:
       interval: weekly
     cooldown:
@@ -35,7 +35,7 @@ updates:
     cooldown:
       default-days: 7
   - package-ecosystem: rust-toolchain
-    directory: codex-rs
+    directory: kv-code-rs
     schedule:
       interval: weekly
     cooldown:

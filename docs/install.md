@@ -17,7 +17,7 @@ The GitHub Release also contains a [DotSlash](https://dotslash-cli.com/) file fo
 ```bash
 # Clone the repository and navigate to the root of the Cargo workspace.
 git clone https://github.com/openai/codex.git
-cd codex/codex-rs
+cd codex/kv-code-rs
 
 # Install the Rust toolchain, if necessary.
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -37,7 +37,7 @@ cargo build
 # Launch the TUI with a sample prompt.
 cargo run --bin codex -- "explain this codebase to me"
 
-# After making changes, use the root justfile helpers (they default to codex-rs):
+# After making changes, use the root justfile helpers (they default to kv-code-rs):
 just fmt
 just fix -p <crate-you-touched>
 
@@ -56,8 +56,8 @@ Codex is written in Rust, so it honors the `RUST_LOG` environment variable to co
 The TUI records diagnostics in bounded local stores by default. Set `log_dir` explicitly to enable a plaintext TUI log for a run:
 
 ```bash
-codex -c log_dir=./.codex-log
-tail -F ./.codex-log/codex-tui.log
+codex -c log_dir=./.kv-code-log
+tail -F ./.kv-code-log/codex-tui.log
 ```
 
 The non-interactive mode (`codex exec`) defaults to `RUST_LOG=error`, but messages are printed inline, so there is no need to monitor a separate file.

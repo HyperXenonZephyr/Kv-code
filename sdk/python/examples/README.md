@@ -5,8 +5,8 @@ Each example folder contains runnable versions:
 - `sync.py` (public sync surface: `Codex`)
 - `async.py` (public async surface: `AsyncCodex`)
 
-All examples intentionally use only public SDK exports from `openai_codex`
-and `openai_codex.types`.
+All examples intentionally use only public SDK exports from `kv_code`
+and `kv_code.types`.
 
 Examples use plain strings for text-only turns and typed input objects for
 multimodal or structured input lists.
@@ -22,7 +22,7 @@ Install the published beta:
 python -m pip install openai-codex
 ```
 
-The SDK installs its pinned `openai-codex-cli-bin` runtime dependency.
+The SDK installs its pinned `openai-kv-code-cli-bin` runtime dependency.
 The pinned runtime version comes from the SDK package dependency.
 
 ## Run From A Checkout

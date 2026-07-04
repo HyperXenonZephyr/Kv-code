@@ -51,7 +51,7 @@ def _load_runtime_setup_module():
     return module
 
 
-def _write_fake_codex_package(package_dir: Path, script) -> Path:
+def _write_fake_kv_code_package(package_dir: Path, script) -> Path:
     (package_dir / "bin").mkdir(parents=True)
     (package_dir / "codex-resources").mkdir()
     (package_dir / "codex-path").mkdir()
@@ -62,8 +62,8 @@ def _write_fake_codex_package(package_dir: Path, script) -> Path:
     return package_dir
 
 
-def _write_fake_codex_package_archive(tmp_path: Path, script) -> Path:
-    package_dir = _write_fake_codex_package(tmp_path / "codex-package", script)
+def _write_fake_kv_code_package_archive(tmp_path: Path, script) -> Path:
+    package_dir = _write_fake_kv_code_package(tmp_path / "codex-package", script)
     archive_path = tmp_path / "codex-package.tar.gz"
     _write_package_archive(package_dir, archive_path)
     return archive_path
@@ -108,7 +108,7 @@ def test_root_fmt_recipes_use_shared_formatter_driver() -> None:
         ],
     }
     expected = {
-        "working_directory": 'set working-directory := "codex-rs"',
+        "working_directory": 'set working-directory := "kv-code-rs"',
         "fmt_comment": (
             "# Format the justfile, Rust, Bazel/Starlark, Python SDK code, and Python scripts."
         ),
@@ -447,7 +447,7 @@ def test_generate_v2_all_uses_titles_for_generated_names() -> None:
 
 
 def test_generated_chatgpt_account_email_is_required_nullable() -> None:
-    from openai_codex.generated.v2_all import ChatgptAccount
+    from kv_code.generated.v2_all import ChatgptAccount
 
     account = ChatgptAccount.model_validate({"email": None, "planType": "pro", "type": "chatgpt"})
     assert account.email is None
@@ -458,7 +458,7 @@ def test_generated_chatgpt_account_email_is_required_nullable() -> None:
 
 
 def test_runtime_package_template_has_no_checked_in_binaries() -> None:
-    runtime_root = ROOT.parent / "python-runtime" / "src" / "codex_cli_bin"
+    runtime_root = ROOT.parent / "python-runtime" / "src" / "kv_code_cli_bin"
     assert sorted(
         path.name
         for path in runtime_root.rglob("*")
@@ -475,16 +475,16 @@ def test_examples_readme_points_to_runtime_version_source_of_truth() -> None:
 def test_runtime_distribution_name_is_consistent() -> None:
     script = _load_update_script_module()
     runtime_setup = _load_runtime_setup_module()
-    from openai_codex import _version, client as client_module
+    from kv_code import _version, client as client_module
 
     assert script.SDK_DISTRIBUTION_NAME == "openai-codex"
     assert runtime_setup.SDK_PACKAGE_NAME == "openai-codex"
     assert _version.DISTRIBUTION_NAME == "openai-codex"
-    assert script.RUNTIME_DISTRIBUTION_NAME == "openai-codex-cli-bin"
-    assert runtime_setup.PACKAGE_NAME == "openai-codex-cli-bin"
-    assert client_module.RUNTIME_PKG_NAME == "openai-codex-cli-bin"
+    assert script.RUNTIME_DISTRIBUTION_NAME == "openai-kv-code-cli-bin"
+    assert runtime_setup.PACKAGE_NAME == "openai-kv-code-cli-bin"
+    assert client_module.RUNTIME_PKG_NAME == "openai-kv-code-cli-bin"
     assert (
-        "importlib.metadata.version('codex-cli-bin')"
+        "importlib.metadata.version('kv-code-cli-bin')"
         not in (ROOT / "_runtime_setup.py").read_text()
     )
 
@@ -503,7 +503,7 @@ def test_source_sdk_template_pins_published_runtime() -> None:
         "runtime_pin": "0.137.0a4",
         "dependencies": [
             "pydantic>=2.12",
-            "openai-codex-cli-bin==0.137.0a4",
+            "openai-kv-code-cli-bin==0.137.0a4",
         ],
     }
 
@@ -570,7 +570,7 @@ def test_runtime_setup_reads_independent_runtime_pin_and_release_tags() -> None:
         ),
         "release_tag": runtime_setup._release_tag("0.116.0a1"),
     } == {
-        "package_name": "openai-codex-cli-bin",
+        "package_name": "openai-kv-code-cli-bin",
         "sdk_template_version": "0.0.0-dev",
         "runtime_pin": "0.137.0a4",
         "normalized_release_version": "0.116.0a1",
@@ -586,7 +586,7 @@ def test_runtime_setup_reads_independent_runtime_pin_and_release_tags() -> None:
         ("Windows", "AMD64", "codex-package-x86_64-pc-windows-msvc.tar.gz"),
     ],
 )
-def test_runtime_setup_downloads_codex_package_archives(
+def test_runtime_setup_downloads_kv_code_package_archives(
     monkeypatch: pytest.MonkeyPatch,
     system: str,
     machine: str,
@@ -644,14 +644,14 @@ def test_runtime_package_is_wheel_only_and_builds_platform_specific_wheels() -> 
         elif isinstance(node.value, ast.JoinedStr):
             build_data_assignments[node.targets[0].slice.value] = "joined-string"
 
-    assert pyproject["project"]["name"] == "openai-codex-cli-bin"
+    assert pyproject["project"]["name"] == "openai-kv-code-cli-bin"
     assert pyproject["tool"]["hatch"]["build"]["targets"]["wheel"] == {
-        "packages": ["src/codex_cli_bin"],
+        "packages": ["src/kv_code_cli_bin"],
         "include": [
-            "src/codex_cli_bin/codex-package.json",
-            "src/codex_cli_bin/bin/**",
-            "src/codex_cli_bin/codex-resources/**",
-            "src/codex_cli_bin/codex-path/**",
+            "src/kv_code_cli_bin/codex-package.json",
+            "src/kv_code_cli_bin/bin/**",
+            "src/kv_code_cli_bin/codex-resources/**",
+            "src/kv_code_cli_bin/codex-path/**",
         ],
         "hooks": {"custom": {}},
     }
@@ -670,7 +670,7 @@ def test_stage_runtime_release_copies_package_layout_and_sets_version(
     tmp_path: Path,
 ) -> None:
     script = _load_update_script_module()
-    package_archive = _write_fake_codex_package_archive(tmp_path, script)
+    package_archive = _write_fake_kv_code_package_archive(tmp_path, script)
 
     staged = script.stage_python_runtime_package(
         tmp_path / "runtime-stage",
@@ -690,7 +690,7 @@ def test_stage_runtime_release_copies_package_layout_and_sets_version(
         "bwrap": "fake bwrap\n",
         "rg": "fake rg\n",
     }
-    assert 'name = "openai-codex-cli-bin"' in (staged / "pyproject.toml").read_text()
+    assert 'name = "openai-kv-code-cli-bin"' in (staged / "pyproject.toml").read_text()
     assert 'version = "1.2.3"' in (staged / "pyproject.toml").read_text()
 
 
@@ -709,7 +709,7 @@ def test_stage_runtime_release_replaces_existing_staging_dir(tmp_path: Path) -> 
     old_file = staging_dir / "stale.txt"
     old_file.parent.mkdir(parents=True)
     old_file.write_text("stale")
-    package_archive = _write_fake_codex_package_archive(tmp_path, script)
+    package_archive = _write_fake_kv_code_package_archive(tmp_path, script)
 
     staged = script.stage_python_runtime_package(
         staging_dir,
@@ -725,7 +725,7 @@ def test_stage_runtime_release_replaces_existing_staging_dir(tmp_path: Path) -> 
 
 def test_stage_runtime_release_can_pin_wheel_platform_tag(tmp_path: Path) -> None:
     script = _load_update_script_module()
-    package_archive = _write_fake_codex_package_archive(tmp_path, script)
+    package_archive = _write_fake_kv_code_package_archive(tmp_path, script)
 
     staged = script.stage_python_runtime_package(
         tmp_path / "runtime-stage",
@@ -753,7 +753,7 @@ def test_runtime_package_layout_is_included_by_wheel_config(
     tmp_path: Path,
 ) -> None:
     script = _load_update_script_module()
-    package_archive = _write_fake_codex_package_archive(tmp_path, script)
+    package_archive = _write_fake_kv_code_package_archive(tmp_path, script)
 
     staged = script.stage_python_runtime_package(
         tmp_path / "runtime-stage",
@@ -763,10 +763,10 @@ def test_runtime_package_layout_is_included_by_wheel_config(
 
     pyproject = tomllib.loads((staged / "pyproject.toml").read_text())
     assert pyproject["tool"]["hatch"]["build"]["targets"]["wheel"]["include"] == [
-        "src/codex_cli_bin/codex-package.json",
-        "src/codex_cli_bin/bin/**",
-        "src/codex_cli_bin/codex-resources/**",
-        "src/codex_cli_bin/codex-path/**",
+        "src/kv_code_cli_bin/codex-package.json",
+        "src/kv_code_cli_bin/bin/**",
+        "src/kv_code_cli_bin/codex-resources/**",
+        "src/kv_code_cli_bin/codex-path/**",
     ]
 
 
@@ -787,18 +787,18 @@ def test_stage_sdk_release_preserves_reviewed_runtime_pin(tmp_path: Path) -> Non
         "version": "0.1.0b1",
         "dependencies": [
             "pydantic>=2.12",
-            "openai-codex-cli-bin==0.137.0a4",
+            "openai-kv-code-cli-bin==0.137.0a4",
         ],
     }
     assert (
         '__version__ = "0.1.0b1"'
-        not in (staged / "src" / "openai_codex" / "__init__.py").read_text()
+        not in (staged / "src" / "kv_code" / "__init__.py").read_text()
     )
     assert (
         'client_version: str = "0.1.0b1"'
-        not in (staged / "src" / "openai_codex" / "client.py").read_text()
+        not in (staged / "src" / "kv_code" / "client.py").read_text()
     )
-    assert not any((staged / "src" / "openai_codex").glob("bin/**"))
+    assert not any((staged / "src" / "kv_code").glob("bin/**"))
 
 
 def test_stage_sdk_release_replaces_existing_staging_dir(tmp_path: Path) -> None:
@@ -816,7 +816,7 @@ def test_stage_sdk_release_replaces_existing_staging_dir(tmp_path: Path) -> None
 
 def test_sdk_beta_release_can_pin_stable_runtime(tmp_path: Path) -> None:
     script = _load_update_script_module()
-    package_archive = _write_fake_codex_package_archive(tmp_path, script)
+    package_archive = _write_fake_kv_code_package_archive(tmp_path, script)
 
     sdk_stage = script.stage_python_sdk_package(
         tmp_path / "sdk-stage",
@@ -840,7 +840,7 @@ def test_sdk_beta_release_can_pin_stable_runtime(tmp_path: Path) -> None:
         "runtime_version": "0.137.0a4",
         "sdk_dependencies": [
             "pydantic>=2.12",
-            "openai-codex-cli-bin==0.137.0a4",
+            "openai-kv-code-cli-bin==0.137.0a4",
         ],
     }
 
@@ -889,7 +889,7 @@ def test_stage_sdk_runs_type_generation_before_staging(tmp_path: Path) -> None:
 
 def test_stage_runtime_stages_package_without_type_generation(tmp_path: Path) -> None:
     script = _load_update_script_module()
-    package_archive = _write_fake_codex_package_archive(tmp_path, script)
+    package_archive = _write_fake_kv_code_package_archive(tmp_path, script)
     calls: list[str] = []
     args = script.parse_args(
         [
@@ -936,7 +936,7 @@ def test_stage_runtime_stages_package_without_type_generation(tmp_path: Path) ->
 def test_default_runtime_is_resolved_from_installed_runtime_package(
     tmp_path: Path,
 ) -> None:
-    from openai_codex import client as client_module
+    from kv_code import client as client_module
 
     fake_binary = tmp_path / ("codex.exe" if client_module.os.name == "nt" else "codex")
     fake_binary.write_text("")
@@ -946,12 +946,12 @@ def test_default_runtime_is_resolved_from_installed_runtime_package(
     )
 
     config = client_module.CodexConfig()
-    assert config.codex_bin is None
+    assert config.kv-code_bin is None
     assert client_module.resolve_codex_bin(config, ops) == fake_binary
 
 
 def test_runtime_path_dir_is_prepended_without_duplicates(tmp_path: Path) -> None:
-    from openai_codex import client as client_module
+    from kv_code import client as client_module
 
     path_dir = tmp_path / "codex-path"
     env = {"PATH": os.pathsep.join(["/usr/bin", str(path_dir), "/bin"])}
@@ -965,7 +965,7 @@ def test_runtime_path_dir_preserves_windows_path_key(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    from openai_codex import client as client_module
+    from kv_code import client as client_module
 
     path_dir = tmp_path / "codex-path"
     monkeypatch.setattr(client_module.os, "name", "nt")
@@ -980,7 +980,7 @@ def test_runtime_path_dir_preserves_windows_path_key(
 
 
 def test_explicit_codex_bin_override_takes_priority(tmp_path: Path) -> None:
-    from openai_codex import client as client_module
+    from kv_code import client as client_module
 
     explicit_binary = tmp_path / (
         "custom-codex.exe" if client_module.os.name == "nt" else "custom-codex"
@@ -998,7 +998,7 @@ def test_explicit_codex_bin_override_takes_priority(tmp_path: Path) -> None:
 
 
 def test_missing_runtime_package_requires_explicit_codex_bin() -> None:
-    from openai_codex import client as client_module
+    from kv_code import client as client_module
 
     ops = client_module.CodexBinResolverOps(
         installed_codex_path=lambda: (_ for _ in ()).throw(
@@ -1012,7 +1012,7 @@ def test_missing_runtime_package_requires_explicit_codex_bin() -> None:
 
 
 def test_broken_runtime_package_does_not_fall_back() -> None:
-    from openai_codex import client as client_module
+    from kv_code import client as client_module
 
     ops = client_module.CodexBinResolverOps(
         installed_codex_path=lambda: (_ for _ in ()).throw(

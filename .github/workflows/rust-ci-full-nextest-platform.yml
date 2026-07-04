@@ -60,7 +60,7 @@ jobs:
     timeout-minutes: 60
     defaults:
       run:
-        working-directory: codex-rs
+        working-directory: kv-code-rs
     env:
       # Windows ARM64 archives are built on Windows x64, while their shards run
       # on native Windows ARM64. Key producer-side caches by the archive runner
@@ -229,7 +229,7 @@ jobs:
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: cargo-timings-rust-ci-nextest-${{ inputs.target }}-${{ inputs.profile }}
-          path: codex-rs/target/**/cargo-timings/cargo-timing.html
+          path: kv-code-rs/target/**/cargo-timings/cargo-timing.html
           if-no-files-found: warn
 
       - name: Upload nextest archive
@@ -293,7 +293,7 @@ jobs:
     timeout-minutes: 60
     defaults:
       run:
-        working-directory: codex-rs
+        working-directory: kv-code-rs
     env:
       NEXTEST_ARCHIVE_FILE: nextest-${{ inputs.artifact_id }}.tar.zst
       TEST_HELPERS_ARTIFACT: nextest-test-helpers-${{ inputs.artifact_id }}
@@ -430,7 +430,7 @@ jobs:
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: nextest-junit-rust-ci-${{ inputs.artifact_id }}-shard-${{ matrix.shard }}
-          path: codex-rs/target/nextest/default/junit.xml
+          path: kv-code-rs/target/nextest/default/junit.xml
           if-no-files-found: warn
 
       - name: Tear down remote test env

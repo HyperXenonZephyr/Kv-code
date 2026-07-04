@@ -1,6 +1,6 @@
 # OpenAI Codex Python SDK (Beta) - API Reference
 
-Public surface of `openai_codex` for Codex workflows.
+Public surface of `kv_code` for Codex workflows.
 
 This SDK is in beta. Public APIs may change before `1.0`. Turn streams are routed by turn ID so one client can consume multiple active turns concurrently.
 Thread starts default to `ApprovalMode.auto_review`; turn starts accept an optional `approval_mode` override.
@@ -8,7 +8,7 @@ Thread starts default to `ApprovalMode.auto_review`; turn starts accept an optio
 ## Package Entry
 
 ```python
-from openai_codex import (
+from kv_code import (
     Codex,
     AsyncCodex,
     CodexConfig,
@@ -32,7 +32,7 @@ from openai_codex import (
     SkillInput,
     MentionInput,
 )
-from openai_codex.types import (
+from kv_code.types import (
     Account,
     AccountLoginCompletedNotification,
     CancelLoginAccountResponse,
@@ -46,9 +46,9 @@ from openai_codex.types import (
 )
 ```
 
-- Version: `openai_codex.__version__`
+- Version: `kv_code.__version__`
 - Requires Python >= 3.10
-- Public Codex protocol value and event types live in `openai_codex.types`
+- Public Codex protocol value and event types live in `kv_code.types`
 
 ## Codex (sync)
 
@@ -189,7 +189,7 @@ Use `turn(...)` when you need low-level turn control (`stream()`, `steer()`,
 Use `sandbox=` consistently on thread lifecycle methods and turns:
 
 ```python
-from openai_codex import Codex, Sandbox
+from kv_code import Codex, Sandbox
 
 with Codex() as codex:
     thread = codex.thread_start(sandbox=Sandbox.workspace_write)
@@ -256,7 +256,7 @@ Use a plain `str` as shorthand for `TextInput(...)` anywhere a turn input is acc
 The SDK wrappers return and accept public Codex protocol models wherever possible:
 
 ```python
-from openai_codex.types import (
+from kv_code.types import (
     Account,
     AccountLoginCompletedNotification,
     CancelLoginAccountResponse,
@@ -271,7 +271,7 @@ from openai_codex.types import (
 ## Retry + errors
 
 ```python
-from openai_codex import (
+from kv_code import (
     retry_on_overload,
     JsonRpcError,
     MethodNotFoundError,
@@ -287,7 +287,7 @@ from openai_codex import (
 ## Example
 
 ```python
-from openai_codex import Codex
+from kv_code import Codex
 
 with Codex() as codex:
     thread = codex.thread_start(model="gpt-5.4", config={"model_reasoning_effort": "high"})

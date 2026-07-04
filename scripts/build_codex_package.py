@@ -10,7 +10,7 @@ import sys
 # package remains importable when this executable is launched from any cwd.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from codex_package.cli import main
+from kv_code_package.cli import main
 
 if __name__ == "__main__":
     raise SystemExit(main())

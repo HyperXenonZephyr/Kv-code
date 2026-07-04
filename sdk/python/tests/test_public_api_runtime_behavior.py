@@ -6,15 +6,15 @@ from typing import Any
 
 import pytest
 
-import openai_codex.api as public_api_module
-from openai_codex.api import (
+import kv_code.api as public_api_module
+from kv_code.api import (
     ApprovalMode,
     AsyncCodex,
     Codex,
     Sandbox,
 )
-from openai_codex.generated.v2_all import TurnStartParams
-from openai_codex.models import InitializeResponse
+from kv_code.generated.v2_all import TurnStartParams
+from kv_code.models import InitializeResponse
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -107,8 +107,8 @@ def test_async_codex_initializes_only_once_under_concurrency() -> None:
             await asyncio.sleep(0.02)
             return InitializeResponse.model_validate(
                 {
-                    "userAgent": "codex-cli/1.2.3",
-                    "serverInfo": {"name": "codex-cli", "version": "1.2.3"},
+                    "userAgent": "kv-code-cli/1.2.3",
+                    "serverInfo": {"name": "kv-code-cli", "version": "1.2.3"},
                 }
             )
 

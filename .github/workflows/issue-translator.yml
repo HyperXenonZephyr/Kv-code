@@ -15,7 +15,7 @@ jobs:
     permissions:
       contents: read
     outputs:
-      codex_output: ${{ steps.codex.outputs.final-message }}
+      codex_output: ${{ steps.kv-code.outputs.final-message }}
     steps:
       - name: Prepare Codex input
         run: jq '.issue | {title, body}' "$GITHUB_EVENT_PATH" > codex-current-issue.json
@@ -71,7 +71,7 @@ jobs:
       - name: Apply translation
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         env:
-          CODEX_OUTPUT: ${{ needs.translate-issue.outputs.codex_output }}
+          CODEX_OUTPUT: ${{ needs.translate-issue.outputs.kv-code_output }}
         with:
           github-token: ${{ github.token }}
           script: |

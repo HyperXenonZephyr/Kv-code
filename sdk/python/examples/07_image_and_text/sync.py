@@ -9,7 +9,7 @@ from _bootstrap import ensure_local_sdk_src, generated_sample_image_data_url, ru
 
 ensure_local_sdk_src()
 
-from openai_codex import Codex, ImageInput, TextInput
+from kv_code import Codex, ImageInput, TextInput
 
 IMAGE_DATA_URL = generated_sample_image_data_url()
 

@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-24.04
     defaults:
       run:
-        working-directory: codex-rs
+        working-directory: kv-code-rs
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-24.04
     defaults:
       run:
-        working-directory: codex-rs
+        working-directory: kv-code-rs
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -130,7 +130,7 @@ jobs:
         run: |
           sudo DEBIAN_FRONTEND=noninteractive apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends pkg-config libcap-dev
-      - name: Run argument comment lint on codex-rs via Bazel
+      - name: Run argument comment lint on kv-code-rs via Bazel
         if: ${{ runner.os != 'Windows' }}
         env:
           BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY }}
@@ -145,7 +145,7 @@ jobs:
             --build_metadata=COMMIT_SHA=${GITHUB_SHA} \
             -- \
             ${bazel_targets}
-      - name: Run argument comment lint on codex-rs via Bazel
+      - name: Run argument comment lint on kv-code-rs via Bazel
         if: ${{ runner.os == 'Windows' }}
         env:
           BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY }}
@@ -164,7 +164,7 @@ jobs:
     timeout-minutes: 30
     defaults:
       run:
-        working-directory: codex-rs
+        working-directory: kv-code-rs
     env:
       # Speed up repeated builds across CI runs by caching compiled objects, except on
       # arm64 macOS runners cross-targeting x86_64 where ring/cc-rs can produce
@@ -283,7 +283,7 @@ jobs:
 
       - name: Compute lockfile hash
         id: lockhash
-        working-directory: codex-rs
+        working-directory: kv-code-rs
         shell: bash
         run: |
           set -euo pipefail
@@ -410,7 +410,7 @@ jobs:
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: cargo-timings-rust-ci-clippy-${{ matrix.target }}-${{ matrix.profile }}
-          path: codex-rs/target/**/cargo-timings/cargo-timing.html
+          path: kv-code-rs/target/**/cargo-timings/cargo-timing.html
           if-no-files-found: warn
 
       # Save caches explicitly; make non-fatal so cache packaging

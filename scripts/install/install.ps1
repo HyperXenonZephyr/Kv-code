@@ -730,7 +730,7 @@ switch ($architecture) {
 }
 
 $codexHome = if ([string]::IsNullOrWhiteSpace($env:CODEX_HOME)) {
-    Join-Path $env:USERPROFILE ".codex"
+    Join-Path $env:USERPROFILE ".kv-code"
 } else {
     $env:CODEX_HOME
 }
@@ -781,7 +781,7 @@ if ($null -eq $packageMetadata -or $null -eq $checksumMetadata) {
     }
     $checksumMetadata = $null
 }
-$tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("codex-install-" + [System.Guid]::NewGuid().ToString("N"))
+$tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("kv-code-install-" + [System.Guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Force -Path $tempDir | Out-Null
 
 try {

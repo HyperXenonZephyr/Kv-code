@@ -9,13 +9,13 @@ from _bootstrap import ensure_local_sdk_src, runtime_config
 
 ensure_local_sdk_src()
 
-from openai_codex import (
+from kv_code import (
     Codex,
     JsonRpcError,
     ServerBusyError,
     retry_on_overload,
 )
-from openai_codex.types import TurnStatus
+from kv_code.types import TurnStatus
 
 with Codex(config=runtime_config()) as codex:
     thread = codex.thread_start(model="gpt-5.4", config={"model_reasoning_effort": "high"})

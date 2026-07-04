@@ -45,7 +45,7 @@ jobs:
               )
 
           pyproject = tomllib.loads(Path("sdk/python/pyproject.toml").read_text())
-          prefix = "openai-codex-cli-bin=="
+          prefix = "openai-kv-code-cli-bin=="
           runtime_versions = [
               dependency.removeprefix(prefix)
               for dependency in pyproject["project"]["dependencies"]
@@ -122,13 +122,13 @@ jobs:
               "win_arm64",
           }
           expected = {
-              f"openai_codex_cli_bin-{version}-py3-none-{tag}.whl"
+              f"kv_code_cli_bin-{version}-py3-none-{tag}.whl"
               for tag in tags
           }
 
           try:
               with urllib.request.urlopen(
-                  f"https://pypi.org/pypi/openai-codex-cli-bin/{version}/json",
+                  f"https://pypi.org/pypi/openai-kv-code-cli-bin/{version}/json",
                   timeout=30,
               ) as response:
                   payload = json.load(response)

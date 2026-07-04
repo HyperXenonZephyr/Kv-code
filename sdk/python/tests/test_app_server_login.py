@@ -5,8 +5,8 @@ import json
 
 from app_server_harness import AppServerHarness
 
-from openai_codex import Codex, CodexConfig
-from openai_codex.generated.v2_all import (
+from kv_code import Codex, CodexConfig
+from kv_code.generated.v2_all import (
     ChatgptAuthTokensLoginAccountParams,
     LoginAccountParams,
 )

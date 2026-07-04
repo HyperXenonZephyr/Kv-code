@@ -17,7 +17,7 @@ from typing import Sequence
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-BUILD_SCRIPT = REPO_ROOT / "codex-cli" / "scripts" / "build_npm_package.py"
+BUILD_SCRIPT = REPO_ROOT / "kv-code-cli" / "scripts" / "build_npm_package.py"
 WORKFLOW_NAME = ".github/workflows/rust-release.yml"
 GITHUB_REPO = "openai/codex"
 BINARY_TARGETS = (
@@ -214,7 +214,7 @@ def install_from_workflow_artifacts(
     artifacts = select_target_artifacts(workflow_id, components)
     download_artifacts(workflow_id, artifacts_dir, artifacts)
     if CODEX_PACKAGE_COMPONENT in components:
-        install_codex_package_archives(artifacts_dir, vendor_dir, BINARY_TARGETS)
+        install_kv_code_package_archives(artifacts_dir, vendor_dir, BINARY_TARGETS)
     install_binary_components(
         artifacts_dir,
         vendor_dir,
@@ -309,7 +309,7 @@ def download_artifacts(
         )
 
 
-def install_codex_package_archives(
+def install_kv_code_package_archives(
     artifacts_dir: Path,
     vendor_dir: Path,
     targets: Sequence[str],
@@ -325,7 +325,7 @@ def install_codex_package_archives(
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
             executor.submit(
-                install_single_codex_package_archive,
+                install_single_kv_code_package_archive,
                 artifacts_dir,
                 vendor_dir,
                 target,
@@ -337,7 +337,7 @@ def install_codex_package_archives(
             print(f"  installed {installed_path}", flush=True)
 
 
-def install_single_codex_package_archive(
+def install_single_kv_code_package_archive(
     artifacts_dir: Path,
     vendor_dir: Path,
     target: str,

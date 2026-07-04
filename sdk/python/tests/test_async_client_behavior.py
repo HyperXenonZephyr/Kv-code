@@ -3,11 +3,11 @@ from __future__ import annotations
 import asyncio
 import time
 
-from openai_codex.async_client import AsyncCodexClient
-from openai_codex.generated.v2_all import (
+from kv_code.async_client import AsyncCodexClient
+from kv_code.generated.v2_all import (
     TurnCompletedNotification,
 )
-from openai_codex.models import Notification, UnknownNotification
+from kv_code.models import Notification, UnknownNotification
 
 
 def test_async_client_allows_concurrent_transport_calls() -> None:

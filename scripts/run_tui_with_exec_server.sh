@@ -3,7 +3,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cargo_root="$repo_root/codex-rs"
+cargo_root="$repo_root/kv-code-rs"
 listen_url="${CODEX_EXEC_SERVER_LISTEN_URL:-ws://127.0.0.1:0}"
 start_timeout_seconds="${CODEX_EXEC_SERVER_START_TIMEOUT_SECONDS:-120}"
 tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/codex-tui-with-exec-server.XXXXXX")"
@@ -24,7 +24,7 @@ trap cleanup EXIT INT TERM HUP
 
 (
   cd "$cargo_root"
-  cargo run -p codex-cli --bin codex -- exec-server --listen "$listen_url"
+  cargo run -p kv-code-cli --bin codex -- exec-server --listen "$listen_url"
 ) >"$stdout_log" 2>"$stderr_log" &
 server_pid="$!"
 

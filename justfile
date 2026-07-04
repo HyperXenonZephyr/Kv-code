@@ -1,4 +1,4 @@
-set working-directory := "codex-rs"
+set working-directory := "kv-code-rs"
 set positional-arguments
 export JUST_SHELL := justfile_directory() / "scripts/just-shell.py"
 set shell := ["python3", "-c", 'import os, runpy; runpy.run_path(os.environ["JUST_SHELL"], run_name="__main__")']
@@ -37,7 +37,7 @@ code-mode-host *args:
 
 # Build the CLI and run the app-server test client
 app-server-test-client *args:
-    cargo build -p codex-cli
+    cargo build -p kv-code-cli
     cargo run -p codex-app-server-test-client -- --codex-bin ./target/debug/codex {args}
 
 # Format the justfile, Rust, Bazel/Starlark, Python SDK code, and Python scripts.
@@ -105,21 +105,21 @@ bench-smoke:
 [no-cd]
 [unix]
 bazel-codex *args:
-    bazel run //codex-rs/cli:codex --run_under="cd $PWD &&" -- "$@"
+    bazel run //kv-code-rs/cli:codex --run_under="cd $PWD &&" -- "$@"
 
 [windows]
 bazel-codex *args:
-    bazel run //codex-rs/cli:codex --run_under='cd /d "{{ invocation_directory_native() }}" &&' -- @($args | Select-Object -Skip 1)
+    bazel run //kv-code-rs/cli:codex --run_under='cd /d "{{ invocation_directory_native() }}" &&' -- @($args | Select-Object -Skip 1)
 
 # Build and run the standalone code-mode host from source using Bazel.
 [no-cd]
 [unix]
 bazel-code-mode-host *args:
-    bazel run //codex-rs/code-mode-host:codex-code-mode-host --run_under="cd $PWD &&" -- "$@"
+    bazel run //kv-code-rs/code-mode-host:codex-code-mode-host --run_under="cd $PWD &&" -- "$@"
 
 [windows]
 bazel-code-mode-host *args:
-    bazel run //codex-rs/code-mode-host:codex-code-mode-host --run_under='cd /d "{{ invocation_directory_native() }}" &&' -- @($args | Select-Object -Skip 1)
+    bazel run //kv-code-rs/code-mode-host:codex-code-mode-host --run_under='cd /d "{{ invocation_directory_native() }}" &&' -- @($args | Select-Object -Skip 1)
 
 [no-cd]
 bazel-lock-update:
@@ -148,11 +148,11 @@ bazel-argument-comment-lint:
     bazel build --config=argument-comment-lint -- $({{ justfile_directory() }}/tools/argument-comment-lint/list-bazel-targets.sh)
 
 build-for-release:
-    bazel build //codex-rs/cli:release_binaries
+    bazel build //kv-code-rs/cli:release_binaries
 
 # Run the MCP server
 mcp-server-run *args:
-    cargo run -p codex-mcp-server -- {args}
+    cargo run -p kv-code-mcp-server -- {args}
 
 # Regenerate the json schema for config.toml from the current config types.
 write-config-schema:
@@ -164,9 +164,9 @@ write-app-server-schema *args:
 
 [no-cd]
 write-hooks-schema:
-    cargo run --manifest-path {{ justfile_directory() }}/codex-rs/Cargo.toml -p codex-hooks --bin write_hooks_schema_fixtures
+    cargo run --manifest-path {{ justfile_directory() }}/kv-code-rs/Cargo.toml -p codex-hooks --bin write_hooks_schema_fixtures
 
-# Run the argument-comment Dylint checks across codex-rs.
+# Run the argument-comment Dylint checks across kv-code-rs.
 [no-cd]
 [unix]
 argument-comment-lint *args:

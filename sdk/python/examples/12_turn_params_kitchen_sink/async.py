@@ -12,10 +12,10 @@ ensure_local_sdk_src()
 
 import asyncio
 
-from openai_codex import (
+from kv_code import (
     AsyncCodex,
 )
-from openai_codex.types import (
+from kv_code.types import (
     Personality,
     ReasoningSummary,
 )

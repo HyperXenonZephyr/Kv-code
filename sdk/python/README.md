@@ -17,7 +17,7 @@ The SDK reuses your existing Codex authentication when one is already
 available:
 
 ```python
-from openai_codex import Codex
+from kv_code import Codex
 
 with Codex() as codex:
     thread = codex.thread_start()
@@ -34,7 +34,7 @@ Existing Codex authentication is reused automatically. To start ChatGPT
 browser login explicitly:
 
 ```python
-from openai_codex import Codex
+from kv_code import Codex
 
 with Codex() as codex:
     login = codex.login_chatgpt()
@@ -60,8 +60,8 @@ with Codex() as codex:
 
 ## Built-In Help
 
-Use Python's standard `help(openai_codex)`, `help(Codex)`, or
-`python -m pydoc openai_codex` documentation tools.
+Use Python's standard `help(kv_code)`, `help(Codex)`, or
+`python -m pydoc kv_code` documentation tools.
 
 ## Documentation
 

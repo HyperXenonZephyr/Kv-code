@@ -16,7 +16,7 @@ jobs:
     permissions:
       contents: read
     outputs:
-      codex_output: ${{ steps.codex.outputs.final-message }}
+      codex_output: ${{ steps.kv-code.outputs.final-message }}
     steps:
       - id: codex
         uses: openai/codex-action@5c3f4ccdb2b8790f73d6b21751ac00e602aa0c02 # v1.7
@@ -118,7 +118,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       ISSUE_NUMBER: ${{ github.event.issue.number }}
-      CODEX_OUTPUT: ${{ needs.gather-labels.outputs.codex_output }}
+      CODEX_OUTPUT: ${{ needs.gather-labels.outputs.kv-code_output }}
     steps:
       - name: Apply labels
         run: |

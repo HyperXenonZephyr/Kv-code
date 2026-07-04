@@ -16,7 +16,7 @@ Requirements:
 - Python `>=3.10`
 - An existing Codex account session, or one of the login flows below
 
-The SDK installs its compatible `openai-codex-cli-bin` runtime dependency
+The SDK installs its compatible `openai-kv-code-cli-bin` runtime dependency
 automatically. While beta releases are the only published SDK releases, this
 normal install command selects the latest beta. After a stable release exists,
 use `pip install --pre openai-codex` to opt into a newer prerelease.
@@ -27,7 +27,7 @@ Existing Codex authentication is reused automatically. For ChatGPT browser
 login:
 
 ```python
-from openai_codex import Codex
+from kv_code import Codex
 
 with Codex() as codex:
     login = codex.login_chatgpt()
@@ -55,7 +55,7 @@ with Codex() as codex:
 ## 3. Run A Turn
 
 ```python
-from openai_codex import Codex, Sandbox
+from kv_code import Codex, Sandbox
 
 with Codex() as codex:
     thread = codex.thread_start(sandbox=Sandbox.workspace_write)
@@ -77,7 +77,7 @@ or interrupting an active turn.
 Use one enum for the initial thread and later turn overrides:
 
 ```python
-from openai_codex import Codex, Sandbox
+from kv_code import Codex, Sandbox
 
 with Codex() as codex:
     thread = codex.thread_start(sandbox=Sandbox.workspace_write)
@@ -98,7 +98,7 @@ also applies to subsequent turns on that thread.
 ## 5. Continue A Thread
 
 ```python
-from openai_codex import Codex
+from kv_code import Codex
 
 with Codex() as codex:
     thread = codex.thread_start()
@@ -120,7 +120,7 @@ with Codex() as codex:
 ```python
 import asyncio
 
-from openai_codex import AsyncCodex, Sandbox
+from kv_code import AsyncCodex, Sandbox
 
 
 async def main() -> None:
@@ -138,16 +138,16 @@ asyncio.run(main())
 Python's built-in documentation tools cover the curated SDK surface:
 
 ```python
-import openai_codex
-from openai_codex import Codex, CodexConfig
+import kv_code
+from kv_code import Codex, CodexConfig
 
-help(openai_codex)
+help(kv_code)
 help(Codex)
 help(CodexConfig)
 ```
 
 ```bash
-python -m pydoc openai_codex
+python -m pydoc kv_code
 ```
 
 ## Developing From This Repository

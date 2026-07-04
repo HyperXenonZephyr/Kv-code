@@ -13,7 +13,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-PACKAGE_NAME = "openai-codex-cli-bin"
+PACKAGE_NAME = "openai-kv-code-cli-bin"
 SDK_PACKAGE_NAME = "openai-codex"
 REPO_SLUG = "openai/codex"
 
@@ -117,7 +117,7 @@ def _installed_runtime_version(python_executable: str | Path) -> str | None:
     snippet = (
         "import importlib.metadata, json, sys\n"
         "try:\n"
-        "    from codex_cli_bin import bundled_codex_path\n"
+        "    from kv_code_cli_bin import bundled_codex_path\n"
         "    bundled_codex_path()\n"
         f"    print(json.dumps({{'version': importlib.metadata.version({PACKAGE_NAME!r})}}))\n"
         "except Exception:\n"

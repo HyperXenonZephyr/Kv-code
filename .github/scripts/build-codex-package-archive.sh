@@ -160,7 +160,7 @@ zstd_archive_path="${archive_dir}/${archive_stem}-${target}.tar.zst"
 rm -rf "$package_dir"
 
 python_args=(
-  "${repo_root}/scripts/build_codex_package.py"
+  "${repo_root}/scripts/build_kv_code_package.py"
   --target "$target"
   --variant "$variant"
   --entrypoint-bin "${entrypoint_dir%/}/${entrypoint_name}${exe_suffix}"

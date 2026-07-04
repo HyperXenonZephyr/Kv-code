@@ -89,10 +89,10 @@ jobs:
           bazel_targets=(
             //...
             # Keep standalone V8 library targets out of the ordinary Bazel CI
-            # path. V8 consumers under `//codex-rs/...` still participate
+            # path. V8 consumers under `//kv-code-rs/...` still participate
             # transitively through `//...`.
             -//third_party/v8:all
-            -//codex-rs/v8-poc:v8-poc-unit-tests
+            -//kv-code-rs/v8-poc:v8-poc-unit-tests
           )
 
           bazel_wrapper_args=(
@@ -297,10 +297,10 @@ jobs:
           bazel_targets=(
             //...
             # Keep standalone V8 library targets out of the ordinary Bazel CI
-            # path. V8 consumers under `//codex-rs/...` still participate
+            # path. V8 consumers under `//kv-code-rs/...` still participate
             # transitively through `//...`.
             -//third_party/v8:all
-            -//codex-rs/v8-poc:v8-poc-unit-tests
+            -//kv-code-rs/v8-poc:v8-poc-unit-tests
           )
 
           bazel_test_args=(
@@ -538,7 +538,7 @@ jobs:
             --build_metadata=COMMIT_SHA=${GITHUB_SHA} \
             --build_metadata=TAG_job=verify-bwrap \
             -- \
-            //codex-rs/bwrap:bwrap
+            //kv-code-rs/bwrap:bwrap
 
       - name: Upload Bazel execution logs
         if: always() && !cancelled()
