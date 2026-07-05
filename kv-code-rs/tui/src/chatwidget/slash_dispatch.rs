@@ -269,17 +269,50 @@ impl ChatWidget {
                 self.show_rename_prompt();
             }
             SlashCommand::Providers => {
-                let model = self.config.model.as_deref().unwrap_or("not set");
-                let provider = "configured";
-                let providers: Vec<String> = self.config.model_providers.keys().cloned().collect();
-                let msg = if providers.is_empty() {
-                    format!("Model: {model} | Provider: {provider}. No providers configured. Run `kv-code init` to set up.")
-                } else {
-                    format!("Model: {model} | Provider: {provider} | Available: {}", providers.join(", "))
-                };
-                self.add_error_message(msg);
+                use crate::bottom_pane::SelectionItem;
+                use crate::bottom_pane::SelectionViewParams;
+                use crate::bottom_pane::popup_consts::standard_popup_hint_line;
+                self.bottom_pane.show_selection_view(SelectionViewParams {
+                    title: Some("AI Providers".to_string()),
+                    subtitle: Some("Select a provider. Use `kv-code init` to configure.".to_string()),
+                    footer_hint: Some(standard_popup_hint_line()),
+                    items: vec![
+                        SelectionItem {
+                            name: "DeepSeek".to_string(),
+                            description: Some("Cheap & fast, good for coding".to_string()),
+                            dismiss_on_select: true,
+                            ..Default::default()
+                        },
+                        SelectionItem {
+                            name: "OpenAI".to_string(),
+                            description: Some("GPT models".to_string()),
+                            dismiss_on_select: true,
+                            ..Default::default()
+                        },
+                        SelectionItem {
+                            name: "Kimi (Moonshot)".to_string(),
+                            description: Some("kimi-k2.5 model".to_string()),
+                            dismiss_on_select: true,
+                            ..Default::default()
+                        },
+                        SelectionItem {
+                            name: "Ollama (Local)".to_string(),
+                            description: Some("Run models locally".to_string()),
+                            dismiss_on_select: true,
+                            ..Default::default()
+                        },
+                        SelectionItem {
+                            name: "Custom API".to_string(),
+                            description: Some("Any OpenAI-compatible API".to_string()),
+                            dismiss_on_select: true,
+                            ..Default::default()
+                        },
+                    ],
+                    ..Default::default()
+                });
+                self.request_redraw();
             }
-            SlashCommand::Model => {
+                        SlashCommand::Model => {
                 self.open_model_popup();
                 self.defer_input_until_settings_applied();
             }
