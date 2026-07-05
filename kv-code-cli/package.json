@@ -1,6 +1,6 @@
 {
   "name": "@hyperxenonzephyr/kv-code",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "description": "KV Code is a local-first coding agent for terminal workflows.",
   "license": "Apache-2.0",
   "homepage": "https://github.com/HyperXenonZephyr/Kv-code#readme",
