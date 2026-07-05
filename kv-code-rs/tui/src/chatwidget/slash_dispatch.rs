@@ -270,9 +270,14 @@ impl ChatWidget {
             }
             SlashCommand::Providers => {
                 let model = self.config.model.as_deref().unwrap_or("not set");
-                self.add_error_message(
-                    format!("Current model: {model}. Run `kv-code providers` to see all AI providers.")
-                );
+                let provider = "configured";
+                let providers: Vec<String> = self.config.model_providers.keys().cloned().collect();
+                let msg = if providers.is_empty() {
+                    format!("Model: {model} | Provider: {provider}. No providers configured. Run `kv-code init` to set up.")
+                } else {
+                    format!("Model: {model} | Provider: {provider} | Available: {}", providers.join(", "))
+                };
+                self.add_error_message(msg);
             }
             SlashCommand::Model => {
                 self.open_model_popup();
