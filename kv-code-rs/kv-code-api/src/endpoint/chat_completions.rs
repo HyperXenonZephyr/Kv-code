@@ -127,7 +127,7 @@ impl<T: HttpTransport> ChatCompletionsClient<T> {
                                 let item = codex_protocol::models::ResponseItem::Message {
                                     id: None,
                                     role: "assistant".to_string(),
-                                    content: vec![],
+                                    content: vec![codex_protocol::models::ContentItem::InputText { text: String::new() }],
                                     phase: None,
                                     internal_chat_message_metadata_passthrough: None,
                                 };
