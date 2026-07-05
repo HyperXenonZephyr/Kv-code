@@ -235,7 +235,7 @@ impl ChatWidget {
                 if std::fs::write(&config_path, &content).is_ok() {
                     // Also set default model for this provider
                     let model = match provider_name.as_str() {
-                        "deepseek" => "deepseek-v4-flash",
+                        "deepseek" => "deepseek-v4-pro",
                         "openai" => "gpt-4o-mini",
                         "kimi" => "kimi-k2.5",
                         "ollama" => "llama3",
