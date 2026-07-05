@@ -90,7 +90,7 @@ Keep crate API surfaces as small as possible. Avoid proliferating test-only help
 
 ### Model visible context
 
-Codex maintains a context (history of messages) that is sent to the model in inference requests.
+Kv Code maintains a context (history of messages) that is sent to the model in inference requests.
 
 1. No history rewrite - the context must be built up incrementally.
 2. Avoid frequent changes to context that cause cache misses.
@@ -223,7 +223,7 @@ Use `just bench-smoke` to dry-run the benchmark for a single iteration to ensure
 
 #### codex_core integration testing
 
-- Prefer the utilities in `core_test_support::responses` when writing end-to-end Codex tests.
+- Prefer the utilities in `core_test_support::responses` when writing end-to-end Kv Code tests.
 - Use `TestCodexBuilder::build_with_auto_env()` by default to ensure that new tests work with
   foreign app/exec OSes. See $remote-tests for details.
 - All `mount_sse*` helpers return a `ResponseMock`; hold onto it so you can assert against outbound `/responses` POST bodies.
