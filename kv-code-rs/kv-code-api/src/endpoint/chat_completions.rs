@@ -10,7 +10,6 @@ use codex_client::EncodedJsonBody;
 use codex_client::HttpTransport;
 use codex_client::RequestCompression;
 use codex_client::RequestTelemetry;
-use futures::StreamExt;
 use http::HeaderMap;
 use http::HeaderValue;
 use http::Method;
@@ -57,16 +56,6 @@ impl<T: HttpTransport> ChatCompletionsClient<T> {
         "v1/chat/completions"
     }
 
-    #[instrument(
-        name = "chat.stream",
-        level = "info",
-        skip_all,
-        fields(
-            transport = "chat_http",
-            http.method = "POST",
-            api.path = "v1/chat/completions"
-        )
-    )]
     pub async fn stream(
         &self,
         body: Value,
@@ -74,12 +63,16 @@ impl<T: HttpTransport> ChatCompletionsClient<T> {
         compression: Compression,
         turn_state: Option<Arc<OnceLock<String>>>,
     ) -> Result<ResponseStream, ApiError> {
+        // Use non-streaming request to avoid SSE format complexity
+        let mut body = body;
+        body["stream"] = Value::Bool(false);
+
         let request_compression = match compression {
             Compression::None => RequestCompression::None,
             Compression::Zstd => RequestCompression::Zstd,
         };
 
-        let stream_response = self
+        let response = self
             .session
             .stream_encoded_json_with(
                 Method::POST,
@@ -90,61 +83,42 @@ impl<T: HttpTransport> ChatCompletionsClient<T> {
                 |req| {
                     req.headers.insert(
                         http::header::ACCEPT,
-                        HeaderValue::from_static("text/event-stream"),
+                        HeaderValue::from_static("application/json"),
                     );
                     req.compression = request_compression;
                 },
             )
             .await?;
 
-        let (tx_event, rx_event) = mpsc::channel::<Result<ResponseEvent, ApiError>>(1600);
-        let mut byte_stream = stream_response.bytes;
+        let (tx_event, rx_event) = mpsc::channel::<Result<ResponseEvent, ApiError>>(16);
+        let mut byte_stream = response.bytes;
 
         tokio::spawn(async move {
-            let mut buffer = String::new();
-            let mut full_content = String::new();
-
+            let mut full_response = Vec::new();
+            use futures::StreamExt;
             while let Some(Ok(bytes)) = byte_stream.next().await {
-                let chunk = String::from_utf8_lossy(&bytes);
-                buffer.push_str(&chunk);
+                full_response.extend_from_slice(&bytes);
+            }
 
-                while let Some(line_end) = buffer.find('\n') {
-                    let line = buffer[..line_end].trim().to_string();
-                    buffer = buffer[line_end + 1..].to_string();
-
-                    if line.starts_with("data: ") {
-                        let data = &line[6..];
-                        if data == "[DONE]" {
-                            break;
-                        }
-                        if let Ok(parsed) = serde_json::from_str::<Value>(data) {
-                            if let Some(choices) = parsed["choices"].as_array() {
-                                for choice in choices {
-                                    if let Some(delta) = choice["delta"].as_object() {
-                                        if let Some(content) = delta.get("content").and_then(|c| c.as_str()) {
-                                            full_content.push_str(content);
-                            if full_content.is_empty() {
-                                let item = codex_protocol::models::ResponseItem::Message {
-                                    id: None,
-                                    role: "assistant".to_string(),
-                                    content: vec![codex_protocol::models::ContentItem::OutputText { text: String::new() }],
-                                    phase: None,
-                                    internal_chat_message_metadata_passthrough: None,
-                                };
-                                let _ = tx_event.send(Ok(ResponseEvent::OutputItemAdded(item))).await;
-                            }
-                                            let _ = tx_event.send(Ok(ResponseEvent::OutputTextDelta(content.to_string()))).await;
-                                        }
-                                    }
-                                }
-                            }
+            if let Ok(response_text) = String::from_utf8(full_response) {
+                if let Ok(parsed) = serde_json::from_str::<Value>(&response_text) {
+                    if let Some(content) = parsed["choices"][0]["message"]["content"].as_str() {
+                        let item = codex_protocol::models::ResponseItem::Message {
+                            id: None,
+                            role: "assistant".to_string(),
+                            content: vec![codex_protocol::models::ContentItem::OutputText {
+                                text: String::new(),
+                            }],
+                            phase: None,
+                            internal_chat_message_metadata_passthrough: None,
+                        };
+                        let _ = tx_event.send(Ok(ResponseEvent::OutputItemAdded(item))).await;
+                        for chunk in content.chars().collect::<Vec<_>>().chunks(1024) {
+                            let text: String = chunk.iter().collect();
+                            let _ = tx_event.send(Ok(ResponseEvent::OutputTextDelta(text))).await;
                         }
                     }
                 }
-            }
-
-            if !full_content.is_empty() {
-                let _ = tx_event.send(Ok(ResponseEvent::OutputTextDelta("\n".to_string()))).await;
             }
         });
 
