@@ -233,6 +233,18 @@ impl ChatWidget {
                     provider_name, base_url, api_key
                 ));
                 if std::fs::write(&config_path, &content).is_ok() {
+                    // Also set default model for this provider
+                    let model = match provider_name.as_str() {
+                        "deepseek" => "deepseek-chat",
+                        "openai" => "gpt-4o-mini",
+                        "kimi" => "kimi-k2.5",
+                        "ollama" => "llama3",
+                        _ => "default",
+                    };
+                    content.push_str(&format!("
+model = \"{}\"", model));
+                    let _ = std::fs::write(&config_path, &content);
+                    self.add_error_message(format!("Saved! Model: {model}"));
                 } else {
                     self.add_error_message("Failed to save API key.".to_string());
                 }
