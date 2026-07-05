@@ -60,7 +60,7 @@ impl ApiKeyPopup2 {
         let text = if self.saved {
             format!("Saved! Press ESC to continue.")
         } else {
-            format!("Key: {}\n\nType & Enter to save, ESC to cancel", mask_key(&self.api_key))
+            format!("Key: {}\n\nType & Enter to save, ESC to cancel", self.api_key.chars().map(|_| "•").collect::<String>())
         };
 
         Paragraph::new(text)
