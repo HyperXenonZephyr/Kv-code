@@ -1,22 +1,9 @@
-//! API Key input popup for configuring providers.
-//!
-//! Shows a centered popup where the user can type or paste an API key for a
-//! provider, then saves it to config.toml on submit.
-
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use ratatui::prelude::Widget;
 use ratatui::style::Color;
 use ratatui::style::Style;
-use ratatui::style::Stylize;
-use ratatui::text::Line;
-use ratatui::widgets::Block;
-use ratatui::widgets::Borders;
-use ratatui::widgets::Clear;
-use ratatui::widgets::Paragraph;
-use ratatui::widgets::Wrap;
 
 pub(crate) struct ApiKeyPopup {
     pub(crate) visible: bool,
@@ -29,14 +16,7 @@ pub(crate) struct ApiKeyPopup {
 
 impl ApiKeyPopup {
     pub(crate) fn new() -> Self {
-        Self {
-            visible: false,
-            provider_name: String::new(),
-            base_url: String::new(),
-            api_key: String::new(),
-            error: None,
-            saved: false,
-        }
+        Self { visible: false, provider_name: String::new(), base_url: String::new(), api_key: String::new(), error: None, saved: false }
     }
 
     pub(crate) fn open(&mut self, name: &str, base_url: &str) {
@@ -49,138 +29,104 @@ impl ApiKeyPopup {
     }
 
     pub(crate) fn handle_key(&mut self, key: KeyEvent) -> bool {
-        if !self.visible {
-            return false;
-        }
+        if !self.visible { return false; }
         match key.code {
-            KeyCode::Esc => {
-                self.visible = false;
-                true
-            }
+            KeyCode::Esc => { self.visible = false; true }
             KeyCode::Enter => {
                 if self.api_key.trim().is_empty() {
                     self.error = Some("API key cannot be empty".to_string());
                 } else {
-                    // Save to config.toml
                     let codex_home = std::env::var("KV_CODE_HOME")
                         .or_else(|_| std::env::var("CODEX_HOME"))
                         .unwrap_or_else(|_| {
-                            let home = std::env::var("HOME")
-                                .or_else(|_| std::env::var("USERPROFILE"))
-                                .unwrap_or_default();
-                            format!("{}\\.kv-code", home)
+                            let home = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")).unwrap_or_default();
+                            format!("{}/.kv-code", home)
                         });
                     let config_path = std::path::Path::new(&codex_home).join("config.toml");
-
-                    // Read existing config or create new
                     let mut content = std::fs::read_to_string(&config_path).unwrap_or_default();
-
-                    // Add/update provider config using TOML table syntax
-                    let provider_section = format!(
-                        "\n[model_providers.{}]\ntype = \"openai\"\nbase_url = \"{}\"\napi_key = \"{}\"\n",
-                        self.provider_name.to_lowercase(),
-                        self.base_url,
-                        self.api_key.trim()
-                    );
-                    content.push_str(&provider_section);
-
+                    content.push_str(&format!("\n[providers.{}]\ntype = \"openai\"\nbase_url = \"{}\"\napi_key = \"{}\"\n", self.provider_name, self.base_url, self.api_key.trim()));
                     match std::fs::write(&config_path, &content) {
-                        Ok(()) => {
-                            self.saved = true;
-                            self.error = None;
-                        }
-                        Err(e) => {
-                            self.error = Some(format!("Failed to save: {}", e));
-                        }
+                        Ok(()) => { self.saved = true; self.error = None; }
+                        Err(e) => { self.error = Some(format!("Failed to save: {}", e)); }
                     }
                 }
                 true
             }
-            KeyCode::Char(c) => {
-                self.api_key.push(c);
-                true
-            }
-            KeyCode::Backspace => {
-                self.api_key.pop();
-                true
-            }
-            KeyCode::Delete => {
-                self.api_key.clear();
-                true
-            }
+            KeyCode::Char(c) => { self.api_key.push(c); true }
+            KeyCode::Backspace => { self.api_key.pop(); true }
+            KeyCode::Delete => { self.api_key.clear(); true }
             _ => false,
         }
     }
 
-    pub(crate) fn render(&self, area: Rect, buf: &mut Buffer) {
-        if !self.visible { return; }
-        // Clamp popup to buffer bounds to prevent panic
-        let buf_width = buf.area.width;
-        let buf_height = buf.area.height;
-        if buf_width == 0 || buf_height == 0 { return; }
-        if !self.visible {
-            return;
-        }
+    pub(crate) fn render(&self, _area: Rect, buf: &mut Buffer) {
+        if !self.visible || buf.area.width < 40 || buf.area.height < 10 { return; }
+        let w = 56i16.min((buf.area.width as i16).saturating_sub(4)) as u16;
+        let h = 10i16.min((buf.area.height as i16).saturating_sub(2)) as u16;
+        let x0 = (buf.area.width - w) / 2;
+        let y0 = (buf.area.height - h) / 2;
+        let style = Style::default().fg(Color::Cyan);
 
-        let safe_width = buf.area.width.max(20);
-        let safe_height = buf.area.height.max(10);
-        let popup_width = (safe_width / 2).min(60);
-        let popup_height = 12u16.min(safe_height.saturating_sub(4));
-        let popup_x = safe_width.saturating_sub(popup_width) / 2;
-        let popup_y = safe_height.saturating_sub(popup_height) / 2;
-        let popup_area = Rect {
-            x: popup_x,
-            y: popup_y,
-            width: popup_width,
-            height: popup_height,
-        };
-        if popup_area.width == 0 || popup_area.height == 0 {
-            return;
-        }
-
-        Clear.render(popup_area, buf);
-
-        let mut lines = vec![];
-
-        if self.saved {
-            lines.push(Line::from(format!(
-                "  Saved provider: {}",
-                self.provider_name
-            )));
-            lines.push(Line::from("  Press ESC to close."));
-        } else {
-            lines.push(Line::from(format!("  Configure {}", self.provider_name)));
-            lines.push(Line::from(format!("  URL: {}", self.base_url)));
-            lines.push(Line::from(""));
-            lines.push(Line::from(format!(
-                "  API Key: {}",
-                mask_key(&self.api_key)
-            )));
-            if let Some(err) = &self.error {
-                lines.push(Line::from(format!("  Error: {err}")).red());
+        for y in y0..y0 + h {
+            for x in x0..x0 + w {
+                if x < buf.area.width && y < buf.area.height { buf[(x, y)].reset(); }
             }
-            lines.push(Line::from(""));
-            lines.push(Line::from(
-                "  Type your API key, Enter to save, ESC to cancel",
-            ));
         }
 
-        let block = Block::default()
-            .title(" API Key ".bold())
-            .borders(Borders::ALL);
+        let hz = "-";
+        let vt = "|";
+        let tl = "+"; let tr = "+";
+        let bl = "+"; let br = "+";
 
-        Paragraph::new(lines)
-            .block(block)
-            .wrap(Wrap { trim: false })
-            .render(popup_area, buf);
+        if x0 < buf.area.width && y0 < buf.area.height { buf[(x0, y0)].set_symbol(tl).set_style(style); }
+        if x0 + w - 1 < buf.area.width && y0 < buf.area.height { buf[(x0 + w - 1, y0)].set_symbol(tr).set_style(style); }
+        if x0 < buf.area.width && y0 + h - 1 < buf.area.height { buf[(x0, y0 + h - 1)].set_symbol(bl).set_style(style); }
+        if x0 + w - 1 < buf.area.width && y0 + h - 1 < buf.area.height { buf[(x0 + w - 1, y0 + h - 1)].set_symbol(br).set_style(style); }
+
+        for x in x0 + 1..x0 + w - 1 {
+            if x < buf.area.width && y0 < buf.area.height { buf[(x, y0)].set_symbol(hz).set_style(style); }
+            if x < buf.area.width && y0 + h - 1 < buf.area.height { buf[(x, y0 + h - 1)].set_symbol(hz).set_style(style); }
+        }
+        for y in y0 + 1..y0 + h - 1 {
+            if x0 < buf.area.width && y < buf.area.height { buf[(x0, y)].set_symbol(vt).set_style(style); }
+            if x0 + w - 1 < buf.area.width && y < buf.area.height { buf[(x0 + w - 1, y)].set_symbol(vt).set_style(style); }
+        }
+
+        let title = " API Key ";
+        for (i, c) in title.chars().enumerate() {
+            let cx = x0 + 2 + i as u16;
+            if cx < buf.area.width && y0 < buf.area.height { buf[(cx, y0)].set_symbol(&c.to_string()).set_style(style); }
+        }
+
+        let texts: Vec<String> = if self.saved {
+            vec![format!(" Saved provider: {}", self.provider_name), " Press ESC to close.".into()]
+        } else {
+            let mut t = vec![
+                format!(" Configure {}", self.provider_name),
+                format!(" URL: {}", self.base_url),
+                "".into(),
+                format!(" API Key: {}", mask_key(&self.api_key)),
+            ];
+            if let Some(err) = &self.error { t.push(format!(" Error: {err}")); }
+            t.push("".into());
+            t.push(" Type your key, Enter to save, ESC to cancel".into());
+            t
+        };
+        for (i, text) in texts.iter().enumerate() {
+            let ty = y0 + 1 + i as u16;
+            if ty >= y0 + h - 1 { break; }
+            for (j, c) in text.chars().enumerate() {
+                let tx = x0 + j as u16;
+                if tx >= x0 + w { break; }
+                if tx < buf.area.width && ty < buf.area.height {
+                    buf[(tx, ty)].set_symbol(&c.to_string());
+                }
+            }
+        }
     }
 }
 
 fn mask_key(key: &str) -> String {
-    if key.len() <= 8 {
-        return "********".to_string();
-    }
-    let prefix = &key[..4];
-    let suffix = &key[key.len() - 4..];
-    format!("{prefix}****{suffix}")
+    if key.len() <= 8 { return "********".to_string(); }
+    format!("{}****{}", &key[..4], &key[key.len()-4..])
 }
