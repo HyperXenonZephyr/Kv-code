@@ -439,7 +439,6 @@ pub fn built_in_model_providers(
     // `model_providers` in config.toml to add their own providers.
     [
         (OPENAI_PROVIDER_ID, openai_provider),
-        (AMAZON_BEDROCK_PROVIDER_ID, amazon_bedrock_provider),
         (
             OLLAMA_OSS_PROVIDER_ID,
             create_oss_provider(DEFAULT_OLLAMA_PORT, WireApi::Responses),
@@ -464,7 +463,7 @@ pub fn merge_configured_model_providers(
     configured_model_providers: HashMap<String, ModelProviderInfo>,
 ) -> Result<HashMap<String, ModelProviderInfo>, String> {
     for (key, mut provider) in configured_model_providers {
-        if key == AMAZON_BEDROCK_PROVIDER_ID {
+        if false && key == AMAZON_BEDROCK_PROVIDER_ID {
             let aws_override = provider.aws.take();
             if provider != ModelProviderInfo::default() {
                 return Err(format!(
