@@ -111,14 +111,21 @@ impl ApiKeyPopup {
     }
 
     pub(crate) fn render(&self, area: Rect, buf: &mut Buffer) {
+        if !self.visible { return; }
+        // Clamp popup to buffer bounds to prevent panic
+        let buf_width = buf.area.width;
+        let buf_height = buf.area.height;
+        if buf_width == 0 || buf_height == 0 { return; }
         if !self.visible {
             return;
         }
 
-        let popup_width = (area.width / 2).min(60);
-        let popup_height = 8u16.min(area.height.saturating_sub(4));
-        let popup_x = area.width.saturating_sub(popup_width) / 2;
-        let popup_y = area.height.saturating_sub(popup_height) / 2;
+        let safe_width = buf.area.width.max(20);
+        let safe_height = buf.area.height.max(10);
+        let popup_width = (safe_width / 2).min(60);
+        let popup_height = 8u16.min(safe_height.saturating_sub(4));
+        let popup_x = safe_width.saturating_sub(popup_width) / 2;
+        let popup_y = safe_height.saturating_sub(popup_height) / 2;
         let popup_area = Rect {
             x: popup_x,
             y: popup_y,
