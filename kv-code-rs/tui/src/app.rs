@@ -1352,6 +1352,7 @@ See the KV Code keymap documentation for supported actions and examples."
         tui.draw_with_resize_reflow(desired_height, |frame| {
             let area = frame.area();
             rendered_area = area;
+            self.chat_widget.api_key_popup2.render(area, frame.buffer);
             self.chat_widget.api_key_popup.render(area, frame.buffer);
             self.chat_widget.render(area, frame.buffer);
             if let Some((x, y)) = self.chat_widget.cursor_pos(area) {

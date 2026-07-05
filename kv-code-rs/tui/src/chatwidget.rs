@@ -324,6 +324,7 @@ use crate::status_indicator_widget::StatusDetailsCapitalization;
 use crate::text_formatting::truncate_text;
 use crate::tui::FrameRequester;
 mod api_key_input_popup;
+pub(crate) mod api_key_popup2;
 use self::api_key_input_popup::ApiKeyPopup;
 mod command_lifecycle;
 mod connectors;
@@ -666,6 +667,7 @@ pub(crate) struct ChatWidget {
     input_queue: InputQueueState,
     cancel_edit: CancelEditState,
     pub(crate) api_key_popup: ApiKeyPopup,
+    pub(crate) api_key_popup2: api_key_popup2::ApiKeyPopup2,
     /// When set, the next composer text submission is treated as an API key for this provider.
     pub(crate) pending_api_key_provider: Option<(String, String)>,
     /// Main chat-surface bindings resolved from `tui.keymap.chat`.
