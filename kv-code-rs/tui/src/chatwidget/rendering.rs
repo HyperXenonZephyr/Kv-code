@@ -133,6 +133,8 @@ impl Renderable for ChatWidget {
     fn render(&self, area: Rect, buf: &mut Buffer) {
         self.as_renderable().render(area, buf);
         self.last_rendered_width.set(Some(area.width as usize));
+        // Render API key input popup on top
+        self.api_key_popup.render(area, buf);
     }
 
     fn desired_height(&self, width: u16) -> u16 {

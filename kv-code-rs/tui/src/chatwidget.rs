@@ -323,6 +323,8 @@ use crate::status_indicator_widget::STATUS_DETAILS_DEFAULT_MAX_LINES;
 use crate::status_indicator_widget::StatusDetailsCapitalization;
 use crate::text_formatting::truncate_text;
 use crate::tui::FrameRequester;
+mod api_key_input_popup;
+use self::api_key_input_popup::ApiKeyPopup;
 mod command_lifecycle;
 mod connectors;
 mod constructor;
@@ -663,6 +665,7 @@ pub(crate) struct ChatWidget {
     suppress_initial_user_message_submit: bool,
     input_queue: InputQueueState,
     cancel_edit: CancelEditState,
+    pub(crate) api_key_popup: ApiKeyPopup,
     /// Main chat-surface bindings resolved from `tui.keymap.chat`.
     chat_keymap: ChatKeymap,
     /// Keybinding to show for popping the most-recently queued message back

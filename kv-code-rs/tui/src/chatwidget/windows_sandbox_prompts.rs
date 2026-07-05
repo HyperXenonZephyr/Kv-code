@@ -373,20 +373,21 @@ impl ChatWidget {
         let legacy_profile_selection = profile_selection;
         let quit_otel = self.session_telemetry.clone();
         let mut items = vec![SelectionItem {
-            name: "Try setting up admin sandbox again".to_string(),
+            name: "Use KV Code with non-admin sandbox".to_string(),
             description: None,
             actions: vec![Box::new({
                 let otel = self.session_telemetry.clone();
-                let preset = elevated_preset;
+                let preset = legacy_preset.clone();
+                let profile = legacy_profile_selection.clone();
                 move |tx| {
                     otel.counter(
-                        "codex.windows_sandbox.fallback_retry_elevated",
+                        "codex.windows_sandbox.fallback_use_legacy",
                         /*inc*/ 1,
                         &[],
                     );
-                    tx.send(AppEvent::BeginWindowsSandboxElevatedSetup {
+                    tx.send(AppEvent::BeginWindowsSandboxLegacySetup {
                         preset: preset.clone(),
-                        profile_selection: elevated_profile_selection.clone(),
+                        profile_selection: profile.clone(),
                     });
                 }
             })],

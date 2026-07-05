@@ -220,6 +220,7 @@ pub(crate) enum AppEvent {
     },
 
     /// Open the resume picker inside the running TUI session.
+    ApiKeyInput(String, String),
     OpenResumePicker,
 
     /// Open the Claude Code migration picker inside the running TUI session.
