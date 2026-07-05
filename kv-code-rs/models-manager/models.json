@@ -1,27 +1,10 @@
 {
   "models": [
     {
-      "slug": "deepseek-v4-pro",
-      "display_name": "DeepSeek V4 Pro",
-      "description": "DeepSeek's most powerful model with reasoning",
-      "priority": 0,
-      "visibility": "list",
-      "context_window": 65536,
-      "max_context_window": 65536,
-      "input_modalities": [
-        "text"
-      ],
-      "supports_parallel_tool_calls": true,
-      "truncation_policy": {
-        "mode": "tokens",
-        "limit": 10000
-      }
-    },
-    {
       "slug": "deepseek-v4-flash",
       "display_name": "DeepSeek V4 Flash",
-      "description": "Fast and efficient DeepSeek model",
-      "priority": 1,
+      "description": "DeepSeek's most powerful model with reasoning",
+      "priority": 0,
       "visibility": "list",
       "context_window": 65536,
       "max_context_window": 65536,
