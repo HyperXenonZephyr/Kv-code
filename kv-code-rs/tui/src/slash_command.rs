@@ -53,6 +53,7 @@ pub enum SlashCommand {
     Title,
     Statusline,
     Theme,
+    Providers,
     #[strum(to_string = "pets", serialize = "pet")]
     Pets,
     Mcp,
@@ -108,6 +109,7 @@ impl SlashCommand {
             SlashCommand::Title => "configure which items appear in the terminal title",
             SlashCommand::Statusline => "configure which items appear in the status line",
             SlashCommand::Theme => "choose a syntax highlighting theme",
+            SlashCommand::Providers => "show configured AI providers",
             SlashCommand::Pets => "choose or hide the terminal pet",
             SlashCommand::Ps => "list background terminals",
             SlashCommand::Stop => "stop all background terminals",
@@ -227,6 +229,7 @@ impl SlashCommand {
             | SlashCommand::Mcp
             | SlashCommand::Apps
             | SlashCommand::Plugins
+            | SlashCommand::Providers
             | SlashCommand::Title
             | SlashCommand::Statusline
             | SlashCommand::AutoReview

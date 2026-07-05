@@ -268,6 +268,11 @@ impl ChatWidget {
                     .counter("codex.thread.rename", /*inc*/ 1, &[]);
                 self.show_rename_prompt();
             }
+            SlashCommand::Providers => {
+                self.add_error_message(
+                    "Providers: configured in config.toml. Run `kv-code providers` to list them.".to_string(),
+                );
+            }
             SlashCommand::Model => {
                 self.open_model_popup();
                 self.defer_input_until_settings_applied();
@@ -1050,6 +1055,7 @@ impl ChatWidget {
             | SlashCommand::MemoryUpdate
             | SlashCommand::Mcp
             | SlashCommand::Apps
+            | SlashCommand::Providers
             | SlashCommand::Plugins
             | SlashCommand::Rollout
             | SlashCommand::Copy
