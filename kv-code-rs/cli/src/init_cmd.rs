@@ -103,7 +103,7 @@ pub async fn run_init() -> ! {
         "[models]".to_string(),
         format!("default = \"{default_model}\""),
         "".to_string(),
-        format!("[providers.{provider_name}]"),
+        format!("[model_providers.{provider_name}]"),
         "type = \"openai\"".to_string(),
         format!("base_url = \"{default_base_url}\""),
     ];

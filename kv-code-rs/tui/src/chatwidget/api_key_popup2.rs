@@ -39,9 +39,9 @@ impl ApiKeyPopup2 {
                         });
                     let p = std::path::Path::new(&home).join("config.toml");
                     let mut c = std::fs::read_to_string(&p).unwrap_or_default();
-                    let hdr = format!("[providers.{}]", self.provider_name);
+                    let hdr = format!("[model_providers.{}]", self.provider_name);
                     if !c.contains(&hdr) {
-                        c.push_str(&format!("\n[providers.{}]\ntype = \"openai\"\nbase_url = \"{}\"\napi_key = \"{}\"\n", self.provider_name, self.base_url, self.api_key.trim()));
+                        c.push_str(&format!("\n[model_providers.{}]\ntype = \"openai\"\nbase_url = \"{}\"\napi_key = \"{}\"\n", self.provider_name, self.base_url, self.api_key.trim()));
                     }
                     let _ = std::fs::write(&p, &c);
                     self.saved = true;
