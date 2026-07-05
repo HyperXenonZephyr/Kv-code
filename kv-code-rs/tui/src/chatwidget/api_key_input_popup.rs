@@ -115,12 +115,19 @@ impl ApiKeyPopup {
             return;
         }
 
+        let popup_width = (area.width / 2).min(60);
+        let popup_height = 8u16.min(area.height.saturating_sub(4));
+        let popup_x = area.width.saturating_sub(popup_width) / 2;
+        let popup_y = area.height.saturating_sub(popup_height) / 2;
         let popup_area = Rect {
-            x: area.width / 4,
-            y: area.height / 3,
-            width: area.width / 2,
-            height: 8,
+            x: popup_x,
+            y: popup_y,
+            width: popup_width,
+            height: popup_height,
         };
+        if popup_area.width == 0 || popup_area.height == 0 {
+            return;
+        }
 
         Clear.render(popup_area, buf);
 
