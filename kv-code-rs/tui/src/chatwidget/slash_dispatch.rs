@@ -269,70 +269,9 @@ impl ChatWidget {
                 self.show_rename_prompt();
             }
             SlashCommand::Providers => {
-                use crate::bottom_pane::SelectionItem;
-                use crate::bottom_pane::SelectionViewParams;
-                use crate::bottom_pane::popup_consts::standard_popup_hint_line;
-                let tx_deepseek = self.app_event_tx.clone();
-                let tx_openai = self.app_event_tx.clone();
-                let tx_kimi = self.app_event_tx.clone();
-                let tx_ollama = self.app_event_tx.clone();
-                self.bottom_pane.show_selection_view(SelectionViewParams {
-                    title: Some("AI Providers".to_string()),
-                    subtitle: Some("Select a provider to configure your API key".to_string()),
-                    footer_hint: Some(standard_popup_hint_line()),
-                    items: vec![
-                        SelectionItem {
-                            name: "DeepSeek".to_string(),
-                            description: Some("api.deepseek.com".to_string()),
-                            actions: vec![Box::new(move |_| {
-                                tx_deepseek.send(crate::app_event::AppEvent::ApiKeyInput(
-                                    "deepseek".to_string(),
-                                    "https://api.deepseek.com".to_string(),
-                                ));
-                            })],
-                            dismiss_on_select: true,
-                            ..Default::default()
-                        },
-                        SelectionItem {
-                            name: "OpenAI".to_string(),
-                            description: Some("api.openai.com/v1".to_string()),
-                            actions: vec![Box::new(move |_| {
-                                tx_openai.send(crate::app_event::AppEvent::ApiKeyInput(
-                                    "openai".to_string(),
-                                    "https://api.openai.com/v1".to_string(),
-                                ));
-                            })],
-                            dismiss_on_select: true,
-                            ..Default::default()
-                        },
-                        SelectionItem {
-                            name: "Kimi (Moonshot)".to_string(),
-                            description: Some("api.moonshot.cn/v1".to_string()),
-                            actions: vec![Box::new(move |_| {
-                                tx_kimi.send(crate::app_event::AppEvent::ApiKeyInput(
-                                    "kimi".to_string(),
-                                    "https://api.moonshot.cn/v1".to_string(),
-                                ));
-                            })],
-                            dismiss_on_select: true,
-                            ..Default::default()
-                        },
-                        SelectionItem {
-                            name: "Ollama (Local)".to_string(),
-                            description: Some("localhost:11434".to_string()),
-                            actions: vec![Box::new(move |_| {
-                                tx_ollama.send(crate::app_event::AppEvent::ApiKeyInput(
-                                    "ollama".to_string(),
-                                    "http://localhost:11434/v1".to_string(),
-                                ));
-                            })],
-                            dismiss_on_select: true,
-                            ..Default::default()
-                        },
-                    ],
-                    ..Default::default()
-                });
-                self.request_redraw();
+                self.add_error_message(
+                    "Use `/model` to change model and `kv-code init` to set up API keys.".to_string()
+                );
             }
             SlashCommand::Model => {
                 self.open_model_popup();
