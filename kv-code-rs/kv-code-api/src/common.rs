@@ -373,25 +373,25 @@ pub fn responses_to_chat_request(request: &ResponsesApiRequest) -> serde_json::V
 
     // Add tools if present - convert from Responses format to Chat format
     if let Some(tools) = &request.tools {
-        let chat_tools: Vec<serde_json::Value> = tools.iter().map(|tool| {
-            // Responses API tool format: { "type": "function", "name": "...", "description": "...", "parameters": {...} }
-            // Chat Completions format: { "type": "function", "function": { "name": "...", "description": "...", "parameters": {...} } }
-            if let Some(name) = tool.get("name") {
-                let function = serde_json::json!({
-                    "name": name,
-                    "description": tool.get("description").or(Some(&serde_json::Value::String("".into()))),
-                    "parameters": tool.get("parameters").or(Some(&serde_json::json!({"type": "object", "properties": {}}))),
-                });
-                serde_json::json!({
-                    "type": "function",
-                    "function": function,
-                })
-            } else {
-                tool.clone()
+        let chat_tools: Vec<serde_json::Value> = tools.iter().filter_map(|tool| {
+            // Only keep function-type tools (Chat API doesn't support web_search etc.)
+            if tool.get("type").and_then(|t| t.as_str()) != Some("function") {
+                return None;
             }
+            let name = tool.get("name")?;
+            let function = serde_json::json!({
+                "name": name,
+                "description": tool.get("description").unwrap_or(&serde_json::Value::Null),
+                "parameters": tool.get("parameters").unwrap_or(&serde_json::json!({"type": "object", "properties": {}})),
+            });
+            Some(serde_json::json!({
+                "type": "function",
+                "function": function,
+            }))
         }).collect();
-        body["tools"] = serde_json::json!(chat_tools);
-        body["tool_choice"] = serde_json::Value::String(request.tool_choice.clone());
+        if !chat_tools.is_empty() {
+            body["tools"] = serde_json::json!(chat_tools);
+        }
     }
 
     // Add reasoning effort
