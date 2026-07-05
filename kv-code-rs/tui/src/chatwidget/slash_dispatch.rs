@@ -269,8 +269,9 @@ impl ChatWidget {
                 self.show_rename_prompt();
             }
             SlashCommand::Providers => {
+                let model = self.config.model.as_deref().unwrap_or("not set");
                 self.add_error_message(
-                    "Providers: configured in config.toml. Run `kv-code providers` to list them.".to_string(),
+                    format!("Current model: {model}. Run `kv-code providers` to see all AI providers.")
                 );
             }
             SlashCommand::Model => {
