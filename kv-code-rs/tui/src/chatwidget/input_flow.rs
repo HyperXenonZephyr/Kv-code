@@ -35,7 +35,6 @@ impl ChatWidget {
                         let mut content = std::fs::read_to_string(&config_path).unwrap_or_default();
                         content.push_str(&format!("\n[providers.{}]\ntype = \"openai\"\nbase_url = \"{}\"\napi_key = \"{}\"\n", provider_name, base_url, api_key));
                         if std::fs::write(&config_path, &content).is_ok() {
-                            self.add_error_message(format!("Saved API key for {provider_name}!"));
                         } else {
                             self.add_error_message("Failed to save API key.".to_string());
                         }
@@ -234,7 +233,6 @@ impl ChatWidget {
                     provider_name, base_url, api_key
                 ));
                 if std::fs::write(&config_path, &content).is_ok() {
-                    self.add_error_message(format!("Saved API key for {provider_name}!"));
                 } else {
                     self.add_error_message("Failed to save API key.".to_string());
                 }
