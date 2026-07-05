@@ -667,7 +667,10 @@ mod tests {
             repo_search_order_from_output(
                 r#"{"nameWithOwner":"fcoury/codex","parent":{"nameWithOwner":"HyperXenonZephyr/Kv-code"}}"#
             ),
-            Some(vec!["HyperXenonZephyr/Kv-code".to_string(), "fcoury/codex".to_string()])
+            Some(vec![
+                "HyperXenonZephyr/Kv-code".to_string(),
+                "fcoury/codex".to_string()
+            ])
         );
     }
 

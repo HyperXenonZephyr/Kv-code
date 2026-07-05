@@ -292,15 +292,6 @@ impl AccountRequestProcessor {
             return Err(self.external_auth_active_error());
         }
 
-        if matches!(
-            self.config.forced_login_method,
-            Some(ForcedLoginMethod::Chatgpt)
-        ) {
-            return Err(invalid_request(
-                "API key login is disabled. Use ChatGPT login instead.",
-            ));
-        }
-
         // Cancel any active login attempt.
         {
             let mut guard = self.active_login.lock().await;
@@ -337,47 +328,14 @@ impl AccountRequestProcessor {
         }
     }
 
-    // Build options for a ChatGPT login attempt; performs validation.
+    // Browser account login is disabled in KV Code; API key/provider auth is the supported path.
     async fn login_chatgpt_common(
         &self,
-        codex_streamlined_login: bool,
+        _codex_streamlined_login: bool,
     ) -> std::result::Result<LoginServerOptions, JSONRPCErrorError> {
-        let config = self.config.as_ref();
-
-        if self.auth_manager.is_external_chatgpt_auth_active() {
-            return Err(self.external_auth_active_error());
-        }
-
-        if matches!(config.forced_login_method, Some(ForcedLoginMethod::Api)) {
-            return Err(invalid_request(
-                "ChatGPT login is disabled. Use API key login instead.",
-            ));
-        }
-
-        let opts = LoginServerOptions {
-            open_browser: false,
-            codex_streamlined_login,
-            ..LoginServerOptions::new(
-                config.codex_home.to_path_buf(),
-                oauth_client_id(),
-                config.forced_chatgpt_workspace_id.clone(),
-                config.cli_auth_credentials_store_mode,
-                config.auth_keyring_backend_kind(),
-                config.auth_route_config(),
-            )
-        };
-        #[cfg(debug_assertions)]
-        let opts = {
-            let mut opts = opts;
-            if let Ok(issuer) = std::env::var(LOGIN_ISSUER_OVERRIDE_ENV_VAR)
-                && !issuer.trim().is_empty()
-            {
-                opts.issuer = issuer;
-            }
-            opts
-        };
-
-        Ok(opts)
+        Err(invalid_request(
+            "Browser account login is disabled in KV Code. Use API key login or configure a model provider.",
+        ))
     }
 
     fn login_chatgpt_device_code_start_error(err: IoError) -> JSONRPCErrorError {
@@ -588,52 +546,13 @@ impl AccountRequestProcessor {
 
     async fn login_chatgpt_auth_tokens_response(
         &self,
-        access_token: String,
-        chatgpt_account_id: String,
-        chatgpt_plan_type: Option<String>,
+        _access_token: String,
+        _chatgpt_account_id: String,
+        _chatgpt_plan_type: Option<String>,
     ) -> Result<LoginAccountResponse, JSONRPCErrorError> {
-        if matches!(
-            self.config.forced_login_method,
-            Some(ForcedLoginMethod::Api)
-        ) {
-            return Err(invalid_request(
-                "External ChatGPT auth is disabled. Use API key login instead.",
-            ));
-        }
-
-        // Cancel any active login attempt to avoid persisting managed auth state.
-        {
-            let mut guard = self.active_login.lock().await;
-            if let Some(active) = guard.take() {
-                drop(active);
-            }
-        }
-
-        if let Some(expected_workspaces) = self.config.forced_chatgpt_workspace_id.as_deref()
-            && !expected_workspaces.contains(&chatgpt_account_id)
-        {
-            return Err(invalid_request(format!(
-                "External auth must use one of workspace(s) {expected_workspaces:?}, but received {chatgpt_account_id:?}.",
-            )));
-        }
-
-        login_with_chatgpt_auth_tokens(
-            &self.config.codex_home,
-            &access_token,
-            &chatgpt_account_id,
-            chatgpt_plan_type.as_deref(),
-        )
-        .map_err(|err| internal_error(format!("failed to set external auth: {err}")))?;
-        self.auth_manager.reload().await;
-        self.config_manager.replace_cloud_config_bundle_loader(
-            self.auth_manager.clone(),
-            self.config.chatgpt_base_url.clone(),
-        );
-        self.config_manager
-            .sync_default_client_residency_requirement()
-            .await;
-
-        Ok(LoginAccountResponse::ChatgptAuthTokens {})
+        Err(invalid_request(
+            "External account auth is disabled in KV Code. Use API key login or configure a model provider.",
+        ))
     }
 
     async fn send_login_success_notifications(&self, login_id: Option<Uuid>) {

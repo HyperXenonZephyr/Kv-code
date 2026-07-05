@@ -89,8 +89,8 @@ class SourceBinariesForTargetTest(unittest.TestCase):
             )
 
         self.assertEqual(outputs.entrypoint_bin, entrypoint)
-        self.assertEqual(outputs.kv-code_command_runner_bin, command_runner)
-        self.assertEqual(outputs.kv-code_windows_sandbox_setup_bin, sandbox_setup)
+        self.assertEqual(outputs.codex_command_runner_bin, command_runner)
+        self.assertEqual(outputs.codex_windows_sandbox_setup_bin, sandbox_setup)
 
 
 def touch_file(path: Path) -> Path:

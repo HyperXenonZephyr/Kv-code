@@ -1,11 +1,11 @@
 use anyhow::Result;
+use codex_utils_absolute_path::AbsolutePathBuf;
 use kv_code_protocol::models::PermissionProfile;
 use kv_code_protocol::permissions::FileSystemPath;
 use kv_code_protocol::permissions::FileSystemSandboxEntry;
 use kv_code_protocol::permissions::FileSystemSandboxKind;
 use kv_code_protocol::permissions::FileSystemSandboxPolicy;
 use kv_code_protocol::permissions::NetworkSandboxPolicy;
-use codex_utils_absolute_path::AbsolutePathBuf;
 use std::collections::HashMap;
 use std::path::Path;
 use std::path::PathBuf;

@@ -10,10 +10,10 @@
 mod backends;
 
 use anyhow::Result;
-use kv_code_protocol::config_types::WindowsSandboxLevel;
-use kv_code_protocol::models::PermissionProfile;
 use codex_utils_absolute_path::AbsolutePathBuf;
 use codex_utils_pty::SpawnedProcess;
+use kv_code_protocol::config_types::WindowsSandboxLevel;
+use kv_code_protocol::models::PermissionProfile;
 use std::collections::HashMap;
 use std::path::Path;
 use std::path::PathBuf;

@@ -10,8 +10,8 @@
 use anyhow::Result;
 use base64::Engine as _;
 use base64::engine::general_purpose::STANDARD;
-use kv_code_protocol::models::PermissionProfile;
 use codex_utils_absolute_path::AbsolutePathBuf;
+use kv_code_protocol::models::PermissionProfile;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;

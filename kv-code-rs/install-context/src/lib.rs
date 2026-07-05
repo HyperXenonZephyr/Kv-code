@@ -6,10 +6,13 @@ use std::sync::OnceLock;
 use codex_utils_absolute_path::AbsolutePathBuf;
 
 const BIN_DIRNAME: &str = "bin";
-const PACKAGE_METADATA_FILENAME: &str = "codex-package.json";
-const PATH_DIRNAME: &str = "codex-path";
+const LEGACY_PACKAGE_METADATA_FILENAME: &str = "codex-package.json";
+const LEGACY_PATH_DIRNAME: &str = "codex-path";
+const LEGACY_RESOURCES_DIRNAME: &str = "codex-resources";
+const PACKAGE_METADATA_FILENAME: &str = "kv-code-package.json";
+const PATH_DIRNAME: &str = "kv-code-path";
 const RELEASES_DIRNAME: &str = "releases";
-const RESOURCES_DIRNAME: &str = "codex-resources";
+const RESOURCES_DIRNAME: &str = "kv-code-resources";
 const STANDALONE_PACKAGES_DIRNAME: &str = "standalone";
 const ZSH_DIRNAME: &str = "zsh";
 static INSTALL_CONTEXT: OnceLock<InstallContext> = OnceLock::new();
@@ -24,7 +27,7 @@ pub enum StandalonePlatform {
 pub struct CodexPackageLayout {
     /// The package root that contains the metadata file and layout directories.
     pub package_dir: AbsolutePathBuf,
-    /// Directory containing the Codex entrypoint executable.
+    /// Directory containing the KV Code entrypoint executable.
     pub bin_dir: AbsolutePathBuf,
     /// Directory containing managed helper binaries and data files, when present.
     pub resources_dir: Option<AbsolutePathBuf>,
@@ -45,23 +48,23 @@ pub enum InstallMethod {
         /// such as
         /// `~/.codex/packages/standalone/releases/0.111.0-x86_64-unknown-linux-musl`.
         /// Package-layout installs use the package root that contains `bin/`,
-        /// `codex-resources/`, and `codex-path/`.
+        /// `kv-code-resources/`, and `kv-code-path/`.
         release_dir: AbsolutePathBuf,
         /// The bundled resource directory for managed dependencies.
         resources_dir: Option<AbsolutePathBuf>,
         /// The platform of the standalone release, either `Unix` or `Windows`.
         platform: StandalonePlatform,
     },
-    /// A Codex binary launched through the npm-managed `codex.js` shim.
+    /// A KV Code binary launched through the npm-managed `kv-code.js` shim.
     Npm,
-    /// A Codex binary launched through the bun-managed `codex.js` shim.
+    /// A KV Code binary launched through the bun-managed `kv-code.js` shim.
     Bun,
     /// A Codex binary that appears to come from a Homebrew install prefix.
     Brew,
     /// Any other execution environment.
     ///
-    /// This commonly covers `cargo run`, app-bundled Codex binaries, custom
-    /// internal launchers, and tests that execute Codex from an arbitrary path.
+    /// This commonly covers `cargo run`, app-bundled KV Code binaries, custom
+    /// internal launchers, and tests that execute KV Code from an arbitrary path.
     Other,
 }
 
@@ -109,8 +112,10 @@ impl InstallContext {
     pub fn current() -> &'static Self {
         INSTALL_CONTEXT.get_or_init(|| {
             let current_exe = std::env::current_exe().ok();
-            let managed_by_npm = std::env::var_os("CODEX_MANAGED_BY_NPM").is_some();
-            let managed_by_bun = std::env::var_os("CODEX_MANAGED_BY_BUN").is_some();
+            let managed_by_npm = std::env::var_os("KV_CODE_MANAGED_BY_NPM").is_some()
+                || std::env::var_os("CODEX_MANAGED_BY_NPM").is_some();
+            let managed_by_bun = std::env::var_os("KV_CODE_MANAGED_BY_BUN").is_some()
+                || std::env::var_os("CODEX_MANAGED_BY_BUN").is_some();
             Self::from_exe(
                 cfg!(target_os = "macos"),
                 current_exe.as_deref(),
@@ -193,13 +198,17 @@ impl CodexPackageLayout {
 
     fn from_package_bin_dir(bin_dir: AbsolutePathBuf) -> Option<Self> {
         let package_dir = bin_dir.parent()?;
-        if !package_dir.join(PACKAGE_METADATA_FILENAME).is_file() {
+        if !package_dir.join(PACKAGE_METADATA_FILENAME).is_file()
+            && !package_dir.join(LEGACY_PACKAGE_METADATA_FILENAME).is_file()
+        {
             return None;
         }
 
         Some(Self {
-            resources_dir: existing_dir(package_dir.join(RESOURCES_DIRNAME)),
-            path_dir: existing_dir(package_dir.join(PATH_DIRNAME)),
+            resources_dir: existing_dir(package_dir.join(RESOURCES_DIRNAME))
+                .or_else(|| existing_dir(package_dir.join(LEGACY_RESOURCES_DIRNAME))),
+            path_dir: existing_dir(package_dir.join(PATH_DIRNAME))
+                .or_else(|| existing_dir(package_dir.join(LEGACY_PATH_DIRNAME))),
             package_dir,
             bin_dir,
         })

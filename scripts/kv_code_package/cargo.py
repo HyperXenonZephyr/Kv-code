@@ -1,4 +1,4 @@
-"""Cargo builds for source-built Codex package artifacts."""
+"""Cargo builds for source-built KV Code package artifacts."""
 
 import os
 import subprocess
@@ -175,8 +175,8 @@ def validate_source_outputs(outputs: SourceBuildOutputs) -> None:
     for path in [
         outputs.entrypoint_bin,
         outputs.bwrap_bin,
-        outputs.kv-code_command_runner_bin,
-        outputs.kv-code_windows_sandbox_setup_bin,
+        outputs.codex_command_runner_bin,
+        outputs.codex_windows_sandbox_setup_bin,
     ]:
         if path is not None and not path.is_file():
             raise RuntimeError(f"cargo build did not produce expected binary: {path}")

@@ -14,8 +14,7 @@ const FAST_TOOLTIP: &str =
     "*New* Use **/fast** to enable our fastest inference with increased plan usage.";
 const OTHER_TOOLTIP: &str = "*New* Build faster with **KV Code**.";
 const OTHER_TOOLTIP_NON_MAC: &str = "*New* Build faster with KV Code.";
-const FREE_GO_TOOLTIP: &str =
-    "*New* KV Code keeps local workflow control visible while you build.";
+const FREE_GO_TOOLTIP: &str = "*New* KV Code keeps local workflow control visible while you build.";
 
 const RAW_TOOLTIPS: &str = include_str!("../tooltips.txt");
 

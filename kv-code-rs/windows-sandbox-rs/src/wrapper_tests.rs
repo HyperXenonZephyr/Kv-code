@@ -2,10 +2,10 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::path::PathBuf;
 
+use codex_utils_absolute_path::AbsolutePathBuf;
 use kv_code_protocol::config_types::WindowsSandboxLevel;
 use kv_code_protocol::models::PermissionProfile;
 use kv_code_protocol::permissions::NetworkSandboxPolicy;
-use codex_utils_absolute_path::AbsolutePathBuf;
 use pretty_assertions::assert_eq;
 
 use super::CODEX_HOME_FLAG;

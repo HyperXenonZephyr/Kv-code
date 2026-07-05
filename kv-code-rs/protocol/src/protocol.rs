@@ -4986,8 +4986,9 @@ mod tests {
         let expected_docs_public =
             AbsolutePathBuf::from_absolute_path(canonical_cwd.join("docs/public"))
                 .expect("canonical docs/public");
-        let expected_dot_codex = AbsolutePathBuf::from_absolute_path(canonical_cwd.join(".kv-code"))
-            .expect("canonical .codex");
+        let expected_dot_codex =
+            AbsolutePathBuf::from_absolute_path(canonical_cwd.join(".kv-code"))
+                .expect("canonical .codex");
         let policy = FileSystemSandboxPolicy::restricted(vec![
             FileSystemSandboxEntry {
                 path: FileSystemPath::Special {

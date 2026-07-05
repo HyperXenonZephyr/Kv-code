@@ -1,4 +1,4 @@
-"""Codex-built V8 artifact overrides for package Cargo builds."""
+"""KV Code V8 artifact overrides for package Cargo builds."""
 
 from __future__ import annotations
 
@@ -61,7 +61,7 @@ def fetch_codex_v8_artifacts(
 ) -> RustyV8ArtifactPair:
     if spec.is_windows:
         raise RuntimeError(
-            f"No Codex-built V8 release artifacts for target: {spec.target}"
+            f"No KV Code V8 release artifacts for target: {spec.target}"
         )
 
     version = version or resolved_v8_crate_version()
@@ -105,7 +105,7 @@ def resolved_v8_crate_version() -> str:
 
 
 def default_cache_root() -> Path:
-    return Path(tempfile.gettempdir()) / "codex-package"
+    return Path(tempfile.gettempdir()) / "kv-code-package"
 
 
 def load_checksums(checksums_path: Path, artifact_names: set[str]) -> dict[str, str]:
@@ -152,7 +152,7 @@ def ensure_valid_artifact(artifact: Path, checksum: str, url: str) -> None:
 
     artifact.unlink(missing_ok=True)
     raise RuntimeError(
-        f"Codex-built V8 artifact {artifact} failed checksum validation."
+        f"KV Code V8 artifact {artifact} failed checksum validation."
     )
 
 

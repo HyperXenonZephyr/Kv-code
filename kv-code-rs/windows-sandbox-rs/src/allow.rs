@@ -44,9 +44,9 @@ pub(crate) fn compute_allow_paths_for_permissions(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use codex_utils_absolute_path::AbsolutePathBuf;
     use kv_code_protocol::models::PermissionProfile;
     use kv_code_protocol::permissions::NetworkSandboxPolicy;
-    use codex_utils_absolute_path::AbsolutePathBuf;
     use std::fs;
     use tempfile::TempDir;
 

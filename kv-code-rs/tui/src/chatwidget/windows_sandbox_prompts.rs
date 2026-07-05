@@ -351,7 +351,7 @@ impl ChatWidget {
         lines.push(line![""]);
         if allow_unelevated {
             lines.push(line![
-                "You can still use Codex in a non-admin sandbox. It carries greater risk if prompt injected."
+                "You can still use KV Code in a non-admin sandbox. It carries greater risk if prompt injected."
             ]);
         } else {
             lines.push(line![
@@ -359,7 +359,7 @@ impl ChatWidget {
             ]);
         }
         lines.push(line![
-            "Learn more <https://developers.openai.com/codex/windows>"
+            "Learn more <https://github.com/HyperXenonZephyr/Kv-code#readme>"
         ]);
 
         let mut header = ColumnRenderable::new();

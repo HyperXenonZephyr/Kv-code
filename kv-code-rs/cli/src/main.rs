@@ -58,6 +58,7 @@ mod app_cmd;
 mod desktop_app;
 mod doctor;
 mod exec_server_telemetry;
+mod init_cmd;
 mod marketplace_cmd;
 mod mcp_cmd;
 mod plugin_cmd;
@@ -68,6 +69,7 @@ mod state_db_recovery;
 #[cfg(not(windows))]
 mod wsl_paths;
 
+use crate::init_cmd::InitCommand;
 use crate::mcp_cmd::McpCli;
 use crate::plugin_cmd::PluginCli;
 use crate::plugin_cmd::PluginSubcommand;
@@ -175,6 +177,9 @@ enum Subcommand {
 
     /// Debugging tools.
     Debug(DebugCommand),
+
+    /// Initialize KV Code configuration interactively.
+    Init(InitCommand),
 
     /// Execpolicy tooling.
     #[clap(hide = true)]
@@ -1614,6 +1619,14 @@ async fn cli_main(
             )?;
             run_providers_command(providers_cli)?;
         }
+        Some(Subcommand::Init(_)) => {
+            reject_remote_mode_for_subcommand(
+                root_remote.as_deref(),
+                root_remote_auth_token_env.as_deref(),
+                "init",
+            )?;
+            init_cmd::run_init().await;
+        }
         Some(Subcommand::Cloud(mut cloud_cli)) => {
             reject_remote_mode_for_subcommand(
                 root_remote.as_deref(),
@@ -2867,6 +2880,7 @@ fn unsupported_subcommand_name_for_strict_config(
         Some(Subcommand::Workspace(_)) => Some("workspace"),
         Some(Subcommand::Tools(_)) => Some("tools"),
         Some(Subcommand::Providers(_)) => Some("providers"),
+        Some(Subcommand::Init(_)) => Some("init"),
         Some(Subcommand::Cloud(_)) => Some("cloud"),
         Some(Subcommand::Sandbox(_)) => Some("sandbox"),
         Some(Subcommand::Debug(_)) => Some("debug"),

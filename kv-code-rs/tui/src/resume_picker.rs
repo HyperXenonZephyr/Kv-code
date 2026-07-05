@@ -3483,7 +3483,8 @@ mod tests {
 
     #[test]
     fn footer_cwd_truncates_to_responsive_column() {
-        let cwd = "~/code/codex.owner-extremely-long-worktree-name-that-needs-truncating/kv-code-rs";
+        let cwd =
+            "~/code/codex.owner-extremely-long-worktree-name-that-needs-truncating/kv-code-rs";
         let branch = "owner/branch";
         let footer = render_footer_lines(
             ThreadSortKey::UpdatedAt,

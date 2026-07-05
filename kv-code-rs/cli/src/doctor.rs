@@ -1,4 +1,4 @@
-//! Implements the `codex doctor` diagnostic report.
+//! Implements the `kv-code doctor` diagnostic report.
 //!
 //! Doctor is intentionally read-mostly: checks inspect the current installation,
 //! configuration, authentication, terminal, state paths, and bounded reachability
@@ -143,7 +143,7 @@ const TMUX_OPTION_NAMES: &[&str] = &[
 const NARROW_TERMINAL_COLUMNS: u16 = 80;
 const NARROW_TERMINAL_ROWS: u16 = 24;
 
-/// Options for building a local Codex diagnostic report.
+/// Options for building a local KV Code diagnostic report.
 ///
 /// The command always runs the full bounded diagnostic set. Human output includes
 /// detailed diagnostics by default; --summary keeps the terminal output compact.
@@ -301,7 +301,7 @@ impl DoctorCheck {
 
 /// Builds, renders, and exits according to the current doctor report.
 ///
-/// This is the CLI entry point for codex doctor. It does not repair issues;
+/// This is the CLI entry point for kv-code doctor. It does not repair issues;
 /// failures are represented in the report and cause a non-zero process exit so
 /// scripts can distinguish a clean environment from one that needs attention.
 pub async fn run_doctor(
@@ -452,7 +452,7 @@ async fn build_report(
                             "config could not be loaded",
                         )
                         .detail(err.to_string())
-                        .remediation("Fix the reported config error, then rerun codex doctor.")
+                        .remediation("Fix the reported config error, then rerun kv-code doctor.")
                     })
                 },
                 async { run_sync_check("network", progress.clone(), network_check) },
@@ -517,7 +517,7 @@ async fn load_config(
         .harness_overrides(overrides)
         .build()
         .await
-        .context("failed to load Codex config")
+        .context("failed to load KV Code config")
 }
 
 fn config_overrides_from_interactive(
@@ -552,7 +552,7 @@ fn config_overrides_from_interactive(
     }
 }
 
-/// JSON support report emitted by `codex doctor --json`.
+/// JSON support report emitted by `kv-code doctor --json`.
 ///
 /// The report is keyed by check id so support tooling can fetch paths like
 /// `checks["terminal.metadata"]` without scanning arrays. Human rendering can
@@ -800,23 +800,23 @@ fn installation_check(show_details: bool) -> DoctorCheck {
     push_env_path_detail(
         &mut details,
         "managed package root",
-        "CODEX_MANAGED_PACKAGE_ROOT",
+        "KV_CODE_MANAGED_PACKAGE_ROOT",
     );
 
-    let path_entries = codex_path_entries();
+    let path_entries = kv_code_path_entries();
     let mut status = CheckStatus::Ok;
     let mut summary = "installation looks consistent".to_string();
     let mut remediation = None;
 
     if path_entries.len() > 1 {
-        details.push(format!("PATH codex entries: {}", path_entries.len()));
+        details.push(format!("PATH kv-code entries: {}", path_entries.len()));
     }
     if show_details || path_entries.len() > 1 {
         details.extend(
             path_entries
                 .iter()
                 .enumerate()
-                .map(|(index, path)| format!("PATH codex #{}: {path}", index + 1)),
+                .map(|(index, path)| format!("PATH kv-code #{}: {path}", index + 1)),
         );
     }
 
@@ -831,7 +831,8 @@ fn installation_check(show_details: bool) -> DoctorCheck {
             } => {
                 status = CheckStatus::Fail;
                 summary =
-                    "npm install -g @openai/codex would update a different install".to_string();
+                    "npm install -g @hyperxenonzephyr/kv-code would update a different install"
+                        .to_string();
                 remediation = Some(format!(
                     "Fix PATH or npm prefix so the running package root ({}) matches the npm global package root ({}).",
                     running_package_root.display(),
@@ -847,7 +848,7 @@ fn installation_check(show_details: bool) -> DoctorCheck {
                 status = status.max(CheckStatus::Warning);
                 summary = "npm-managed launch is missing package-root provenance".to_string();
                 remediation = Some(
-                    "Reinstall or update Codex so the JS shim provides CODEX_MANAGED_PACKAGE_ROOT."
+                    "Reinstall or update KV Code so the JS shim provides KV_CODE_MANAGED_PACKAGE_ROOT."
                         .to_string(),
                 );
             }
@@ -983,7 +984,9 @@ enum NpmRootCheck {
 }
 
 fn npm_global_root_check() -> NpmRootCheck {
-    let Some(running_package_root) = env::var_os("CODEX_MANAGED_PACKAGE_ROOT").map(PathBuf::from)
+    let Some(running_package_root) = env::var_os("KV_CODE_MANAGED_PACKAGE_ROOT")
+        .or_else(|| env::var_os("CODEX_MANAGED_PACKAGE_ROOT"))
+        .map(PathBuf::from)
     else {
         return NpmRootCheck::MissingPackageRoot;
     };
@@ -1000,7 +1003,7 @@ fn npm_global_root_check() -> NpmRootCheck {
 }
 
 fn compare_npm_package_roots(running_package_root: &Path, npm_root: &Path) -> NpmRootCheck {
-    let npm_package_root = npm_root.join("@openai").join("codex");
+    let npm_package_root = npm_root.join("@hyperxenonzephyr").join("kv-code");
     let running = normalize_path_for_compare(running_package_root);
     let target = normalize_path_for_compare(&npm_package_root);
     if running == target {
@@ -1037,11 +1040,11 @@ fn display_list<T: AsRef<str>>(items: &[T]) -> String {
     }
 }
 
-fn codex_path_entries() -> Vec<String> {
+fn kv_code_path_entries() -> Vec<String> {
     #[cfg(windows)]
-    let result = run_command("where", ["codex"]);
+    let result = run_command("where", ["kv-code"]);
     #[cfg(not(windows))]
-    let result = run_command("which", ["-a", "codex"]);
+    let result = run_command("which", ["-a", "kv-code"]);
 
     result
         .unwrap_or_default()
@@ -1205,7 +1208,10 @@ fn auth_check(config: &Config) -> DoctorCheck {
         Ok(Some(auth)) => {
             details.push(format!("stored auth mode: {}", stored_auth_mode(&auth)));
             details.push(format!("stored API key: {}", auth.openai_api_key.is_some()));
-            details.push(format!("stored ChatGPT tokens: {}", auth.tokens.is_some()));
+            details.push(format!(
+                "stored legacy account tokens: {}",
+                auth.tokens.is_some()
+            ));
             details.push(format!(
                 "stored agent identity: {}",
                 auth.agent_identity.is_some()
@@ -1236,8 +1242,9 @@ fn auth_check(config: &Config) -> DoctorCheck {
             let mut check =
                 DoctorCheck::new("auth.credentials", "auth", status, summary).details(details);
             if status == CheckStatus::Fail {
-                check =
-                    check.remediation("Run codex login again or provide a supported auth env var.");
+                check = check.remediation(
+                    "Run kv-code login again or provide a supported provider auth env var.",
+                );
             }
             check
         }
@@ -1252,10 +1259,12 @@ fn auth_check(config: &Config) -> DoctorCheck {
             "auth.credentials",
             "auth",
             CheckStatus::Fail,
-            "no Codex credentials were found",
+            "no KV Code credentials were found",
         )
         .details(details)
-        .remediation("Run codex login or provide an API key through a supported auth env var."),
+        .remediation(
+            "Run kv-code login or provide an API key through a supported provider auth env var.",
+        ),
         Err(err) => DoctorCheck::new(
             "auth.credentials",
             "auth",
@@ -1263,7 +1272,7 @@ fn auth_check(config: &Config) -> DoctorCheck {
             "stored credentials could not be read",
         )
         .detail(err.to_string())
-        .remediation("Fix auth storage access or run codex login again."),
+        .remediation("Fix auth storage access or run kv-code login again."),
     }
 }
 
@@ -1325,8 +1334,8 @@ fn provider_specific_auth_check(
 fn stored_auth_mode(auth: &codex_login::AuthDotJson) -> &'static str {
     match stored_auth_mode_value(auth) {
         AuthMode::ApiKey => "api_key",
-        AuthMode::Chatgpt => "chatgpt",
-        AuthMode::ChatgptAuthTokens => "chatgpt_auth_tokens",
+        AuthMode::Chatgpt => "legacy_account",
+        AuthMode::ChatgptAuthTokens => "legacy_account_tokens",
         AuthMode::AgentIdentity => "agent_identity",
         AuthMode::PersonalAccessToken => "personal_access_token",
         AuthMode::BedrockApiKey => "bedrock_api_key",
@@ -1369,32 +1378,32 @@ fn stored_auth_issues(
             match auth.tokens.as_ref() {
                 Some(tokens) => {
                     if tokens.access_token.trim().is_empty() {
-                        issues.push("ChatGPT auth is missing an access token");
+                        issues.push("legacy account auth is missing an access token");
                     }
                     if tokens.refresh_token.trim().is_empty() {
-                        issues.push("ChatGPT auth is missing a refresh token");
+                        issues.push("legacy account auth is missing a refresh token");
                     }
                 }
-                None => issues.push("ChatGPT auth is missing token data"),
+                None => issues.push("legacy account auth is missing token data"),
             }
             if auth.last_refresh.is_none() {
-                issues.push("ChatGPT auth is missing refresh metadata");
+                issues.push("legacy account auth is missing refresh metadata");
             }
         }
         AuthMode::ChatgptAuthTokens => {
             match auth.tokens.as_ref() {
                 Some(tokens) => {
                     if tokens.access_token.trim().is_empty() {
-                        issues.push("external ChatGPT auth is missing an access token");
+                        issues.push("external account auth is missing an access token");
                     }
                     if tokens.account_id.is_none() && tokens.id_token.chatgpt_account_id.is_none() {
-                        issues.push("external ChatGPT auth is missing a ChatGPT account id");
+                        issues.push("external account auth is missing an account id");
                     }
                 }
-                None => issues.push("external ChatGPT auth is missing token data"),
+                None => issues.push("external account auth is missing token data"),
             }
             if auth.last_refresh.is_none() {
-                issues.push("external ChatGPT auth is missing refresh metadata");
+                issues.push("external account auth is missing refresh metadata");
             }
         }
         AuthMode::AgentIdentity => {
@@ -2464,8 +2473,8 @@ fn websocket_error_detail(err: &ApiError) -> String {
 fn auth_mode_name(auth: &CodexAuth) -> &'static str {
     match auth.auth_mode() {
         AuthMode::ApiKey => "api_key",
-        AuthMode::Chatgpt => "chatgpt",
-        AuthMode::ChatgptAuthTokens => "chatgpt_auth_tokens",
+        AuthMode::Chatgpt => "legacy_account",
+        AuthMode::ChatgptAuthTokens => "legacy_account_tokens",
         AuthMode::AgentIdentity => "agent_identity",
         AuthMode::PersonalAccessToken => "personal_access_token",
         AuthMode::BedrockApiKey => "bedrock_api_key",
@@ -2537,7 +2546,7 @@ struct ReachabilityEndpoint {
 enum ProviderAuthReachabilityMode {
     NotRequired,
     ApiKey,
-    Chatgpt,
+    Account,
 }
 
 impl ProviderAuthReachabilityMode {
@@ -2545,7 +2554,7 @@ impl ProviderAuthReachabilityMode {
         match self {
             Self::NotRequired => "provider auth",
             Self::ApiKey => "API key auth",
-            Self::Chatgpt => "ChatGPT auth",
+            Self::Account => "account auth",
         }
     }
 }
@@ -2570,19 +2579,23 @@ fn provider_reachability_plan(config: &Config) -> ReachabilityPlan {
         config.model_provider.base_url.as_deref(),
         config.model_provider.query_params.as_ref(),
         config.model_provider.is_amazon_bedrock(),
-        &config.chatgpt_base_url,
+        config
+            .model_provider
+            .base_url
+            .as_deref()
+            .unwrap_or("https://api.openai.com/v1"),
     )
 }
 
 fn default_reachability_plan() -> ReachabilityPlan {
     provider_reachability_plan_from_parts(
-        ProviderAuthReachabilityMode::Chatgpt,
+        ProviderAuthReachabilityMode::ApiKey,
         "openai",
         "OpenAI",
         /*provider_base_url*/ None,
         /*provider_query_params*/ None,
         /*is_amazon_bedrock*/ false,
-        "https://chatgpt.com/backend-api/",
+        "https://api.openai.com/v1",
     )
 }
 
@@ -2598,17 +2611,16 @@ fn provider_auth_reachability_mode_from_auth(
         return ProviderAuthReachabilityMode::ApiKey;
     }
     if env_var_present(CODEX_ACCESS_TOKEN_ENV_VAR) {
-        return ProviderAuthReachabilityMode::Chatgpt;
+        return ProviderAuthReachabilityMode::Account;
     }
     match stored_auth.map(stored_auth_mode_value) {
         Some(AuthMode::ApiKey | AuthMode::BedrockApiKey) => ProviderAuthReachabilityMode::ApiKey,
-        Some(
-            AuthMode::Chatgpt
-            | AuthMode::ChatgptAuthTokens
-            | AuthMode::AgentIdentity
-            | AuthMode::PersonalAccessToken,
-        )
-        | None => ProviderAuthReachabilityMode::Chatgpt,
+        Some(AuthMode::Chatgpt | AuthMode::ChatgptAuthTokens) | None => {
+            ProviderAuthReachabilityMode::ApiKey
+        }
+        Some(AuthMode::AgentIdentity | AuthMode::PersonalAccessToken) => {
+            ProviderAuthReachabilityMode::Account
+        }
     }
 }
 
@@ -2619,7 +2631,7 @@ fn provider_reachability_plan_from_parts(
     provider_base_url: Option<&str>,
     provider_query_params: Option<&HashMap<String, String>>,
     is_amazon_bedrock: bool,
-    chatgpt_base_url: &str,
+    account_base_url: &str,
 ) -> ReachabilityPlan {
     let provider_route_probe_url = provider_base_url
         .or_else(|| {
@@ -2638,9 +2650,9 @@ fn provider_reachability_plan_from_parts(
             required: true,
             route_probe_url: provider_route_probe_url,
         }],
-        ProviderAuthReachabilityMode::Chatgpt => vec![ReachabilityEndpoint {
-            label: "ChatGPT".to_string(),
-            url: chatgpt_base_url.to_string(),
+        ProviderAuthReachabilityMode::Account => vec![ReachabilityEndpoint {
+            label: "Account API".to_string(),
+            url: account_base_url.to_string(),
             required: true,
             route_probe_url: None,
         }],

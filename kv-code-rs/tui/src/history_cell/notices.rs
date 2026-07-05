@@ -62,8 +62,7 @@ impl HistoryCell for UpdateAvailableHistoryCell {
         let update_instruction = if let Some(update_action) = self.update_action {
             format!("Run {} to update.", update_action.command_str())
         } else {
-            "See https://github.com/HyperXenonZephyr/Kv-code for installation options."
-                .to_string()
+            "See https://github.com/HyperXenonZephyr/Kv-code for installation options.".to_string()
         };
         vec![
             Line::from("Update available!"),

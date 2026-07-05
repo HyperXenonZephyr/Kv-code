@@ -1891,7 +1891,7 @@ async fn get_login_status(
     let account = app_server.read_account().await?;
     Ok(match account.account {
         Some(AppServerAccount::ApiKey {}) => LoginStatus::AuthMode(AuthMode::ApiKey),
-        Some(AppServerAccount::Chatgpt { .. }) => LoginStatus::AuthMode(AuthMode::Chatgpt),
+        Some(AppServerAccount::Chatgpt { .. }) => LoginStatus::NotAuthenticated,
         Some(AppServerAccount::AmazonBedrock { .. }) => LoginStatus::NotAuthenticated,
         None => LoginStatus::NotAuthenticated,
     })
@@ -2000,8 +2000,8 @@ fn should_show_onboarding(
 }
 
 fn should_show_login_screen(login_status: LoginStatus, config: &Config) -> bool {
-    // Only show the login screen for providers that actually require OpenAI auth
-    // (OpenAI or equivalents). For OSS/other providers, skip login entirely.
+    // KV Code uses API-key/provider authentication in onboarding. Existing
+    // ChatGPT sessions do not satisfy the local login requirement.
     if !config.model_provider.requires_openai_auth {
         return false;
     }

@@ -1,5 +1,5 @@
-use kv_code_protocol::models::PermissionProfile;
 use codex_utils_absolute_path::AbsolutePathBuf;
+use kv_code_protocol::models::PermissionProfile;
 use std::collections::HashMap;
 use std::path::Path;
 use std::path::PathBuf;

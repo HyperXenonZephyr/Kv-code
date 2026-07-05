@@ -149,7 +149,7 @@ mod tests {
                 "sh",
                 &[
                     "-c",
-                    "curl -fsSL https://chatgpt.com/codex/install.sh | CODEX_NON_INTERACTIVE=1 sh"
+                    "curl -fsSL https://github.com/HyperXenonZephyr/Kv-code/releases/latest/download/install.sh | KV_CODE_NON_INTERACTIVE=1 sh"
                 ][..],
             )
         );
@@ -161,7 +161,7 @@ mod tests {
                     "-ExecutionPolicy",
                     "Bypass",
                     "-c",
-                    "$env:CODEX_NON_INTERACTIVE=1; irm https://chatgpt.com/codex/install.ps1 | iex"
+                    "$env:KV_CODE_NON_INTERACTIVE=1; irm https://github.com/HyperXenonZephyr/Kv-code/releases/latest/download/install.ps1 | iex"
                 ][..],
             )
         );

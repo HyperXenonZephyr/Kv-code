@@ -121,7 +121,7 @@ impl OnboardingScreen {
         if show_login_screen {
             let highlighted_mode = match forced_login_method {
                 Some(ForcedLoginMethod::Api) => SignInOption::ApiKey,
-                _ => SignInOption::ChatGpt,
+                _ => SignInOption::ApiKey,
             };
             if let Some(app_server_request_handle) = app_server_request_handle {
                 steps.push(Step::Auth(AuthModeWidget {
@@ -481,7 +481,7 @@ pub(crate) async fn run_onboarding_app(
     let app_server_request_handle = args.app_server_request_handle.clone();
     let mut onboarding_screen = OnboardingScreen::new(tui, args).await;
     let mut directory_trust_persisted = false;
-    // One-time guard to fully clear the screen after ChatGPT login success message is shown
+    // One-time guard to fully clear the screen after the auth success message is shown.
     let mut did_full_clear_after_success = false;
 
     tui.draw(u16::MAX, |frame| {
@@ -514,7 +514,7 @@ pub(crate) async fn run_onboarding_app(
                                 && onboarding_screen.steps.iter().any(|step| {
                                     if let Step::Auth(w) = step {
                                         w.sign_in_state.read().is_ok_and(|g| {
-                                            matches!(&*g, super::auth::SignInState::ChatGptSuccessMessage)
+                                            matches!(&*g, super::auth::SignInState::ApiKeyConfigured)
                                         })
                                     } else {
                                         false

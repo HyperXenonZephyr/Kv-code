@@ -2306,7 +2306,10 @@ async fn project_layers_prefer_closest_cwd() -> std::io::Result<()> {
         })
         .collect();
     assert_eq!(project_layers.len(), 2);
-    assert_eq!(project_layers[0].as_path(), nested.join(".kv-code").as_path());
+    assert_eq!(
+        project_layers[0].as_path(),
+        nested.join(".kv-code").as_path()
+    );
     assert_eq!(
         project_layers[1].as_path(),
         project_root.join(".kv-code").as_path()
@@ -2538,7 +2541,9 @@ async fn nested_project_root_markers_do_not_redirect_regular_repo_hooks() -> std
     assert_eq!(project_layers.len(), 2);
     assert_eq!(
         project_layers[0].hooks_config_folder(),
-        Some(AbsolutePathBuf::from_absolute_path(nested.join(".kv-code"))?)
+        Some(AbsolutePathBuf::from_absolute_path(
+            nested.join(".kv-code")
+        )?)
     );
     assert_eq!(
         project_layers[1].hooks_config_folder(),
@@ -2588,7 +2593,11 @@ model_instructions_file = "root.txt"
     let nested_cfg = r#"
 model_instructions_file = "child.txt"
 "#;
-    tokio::fs::write(project_root.join(".kv-code").join(CONFIG_TOML_FILE), root_cfg).await?;
+    tokio::fs::write(
+        project_root.join(".kv-code").join(CONFIG_TOML_FILE),
+        root_cfg,
+    )
+    .await?;
     tokio::fs::write(nested.join(".kv-code").join(CONFIG_TOML_FILE), nested_cfg).await?;
     tokio::fs::write(
         project_root.join(".kv-code").join("root.txt"),
@@ -3483,7 +3492,10 @@ async fn project_root_markers_supports_alternate_markers() -> std::io::Result<()
         })
         .collect();
     assert_eq!(project_layers.len(), 2);
-    assert_eq!(project_layers[0].as_path(), nested.join(".kv-code").as_path());
+    assert_eq!(
+        project_layers[0].as_path(),
+        nested.join(".kv-code").as_path()
+    );
     assert_eq!(
         project_layers[1].as_path(),
         project_root.join(".kv-code").as_path()
