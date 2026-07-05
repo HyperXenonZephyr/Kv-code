@@ -62,10 +62,6 @@ impl App {
                 )
                 .await;
             }
-            AppEvent::ApiKeyInput(name, url) => {
-                //eprintln!("[KVCODE] ApiKeyInput event: {} {}", name, url);
-                self.chat_widget.api_key_popup.open(&name, &url);
-            }
             AppEvent::OpenResumePicker => {
                 let picker_app_server = match crate::start_app_server_for_picker(
                     &self.config,

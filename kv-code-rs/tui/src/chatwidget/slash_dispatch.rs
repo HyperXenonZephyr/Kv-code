@@ -272,35 +272,15 @@ impl ChatWidget {
                 use crate::bottom_pane::SelectionItem;
                 use crate::bottom_pane::SelectionViewParams;
                 use crate::bottom_pane::popup_consts::standard_popup_hint_line;
-                let tx1 = self.app_event_tx.clone();
-                let tx2 = self.app_event_tx.clone();
-                let tx3 = self.app_event_tx.clone();
-                let tx4 = self.app_event_tx.clone();
                 self.bottom_pane.show_selection_view(SelectionViewParams {
                     title: Some("AI Providers".to_string()),
-                    subtitle: Some("Select to enter your API key".to_string()),
+                    subtitle: Some("Configure in terminal: `kv-code init`".to_string()),
                     footer_hint: Some(standard_popup_hint_line()),
                     items: vec![
-                        SelectionItem {
-                            name: "DeepSeek".to_string(), description: Some("api.deepseek.com".to_string()),
-                            actions: vec![Box::new(move |_| { tx1.send(crate::app_event::AppEvent::ApiKeyInput("deepseek".into(),"https://api.deepseek.com".into())); })],
-                            dismiss_on_select: true, ..Default::default()
-                        },
-                        SelectionItem {
-                            name: "OpenAI".to_string(), description: Some("api.openai.com/v1".to_string()),
-                            actions: vec![Box::new(move |_| { tx2.send(crate::app_event::AppEvent::ApiKeyInput("openai".into(),"https://api.openai.com/v1".into())); })],
-                            dismiss_on_select: true, ..Default::default()
-                        },
-                        SelectionItem {
-                            name: "Kimi".to_string(), description: Some("api.moonshot.cn/v1".to_string()),
-                            actions: vec![Box::new(move |_| { tx3.send(crate::app_event::AppEvent::ApiKeyInput("kimi".into(),"https://api.moonshot.cn/v1".into())); })],
-                            dismiss_on_select: true, ..Default::default()
-                        },
-                        SelectionItem {
-                            name: "Ollama".to_string(), description: Some("localhost:11434".to_string()),
-                            actions: vec![Box::new(move |_| { tx4.send(crate::app_event::AppEvent::ApiKeyInput("ollama".into(),"http://localhost:11434/v1".into())); })],
-                            dismiss_on_select: true, ..Default::default()
-                        },
+                        SelectionItem { name: "DeepSeek".into(), description: Some("api.deepseek.com".into()), dismiss_on_select: true, ..Default::default() },
+                        SelectionItem { name: "OpenAI".into(), description: Some("api.openai.com/v1".into()), dismiss_on_select: true, ..Default::default() },
+                        SelectionItem { name: "Kimi".into(), description: Some("api.moonshot.cn/v1".into()), dismiss_on_select: true, ..Default::default() },
+                        SelectionItem { name: "Ollama".into(), description: Some("localhost:11434".into()), dismiss_on_select: true, ..Default::default() },
                     ],
                     ..Default::default()
                 });

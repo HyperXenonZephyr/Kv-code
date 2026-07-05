@@ -1353,7 +1353,6 @@ See the KV Code keymap documentation for supported actions and examples."
             let area = frame.area();
             rendered_area = area;
             self.chat_widget.render(area, frame.buffer);
-            self.chat_widget.api_key_popup.render(area, frame.buffer);
             if let Some((x, y)) = self.chat_widget.cursor_pos(area) {
                 frame.set_cursor_style(self.chat_widget.cursor_style(area));
                 frame.set_cursor_position((x, y));
