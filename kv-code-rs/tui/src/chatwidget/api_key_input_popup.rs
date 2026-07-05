@@ -123,7 +123,7 @@ impl ApiKeyPopup {
         let safe_width = buf.area.width.max(20);
         let safe_height = buf.area.height.max(10);
         let popup_width = (safe_width / 2).min(60);
-        let popup_height = 8u16.min(safe_height.saturating_sub(4));
+        let popup_height = 12u16.min(safe_height.saturating_sub(4));
         let popup_x = safe_width.saturating_sub(popup_width) / 2;
         let popup_y = safe_height.saturating_sub(popup_height) / 2;
         let popup_area = Rect {
