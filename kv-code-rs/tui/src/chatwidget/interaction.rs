@@ -6,9 +6,10 @@ impl ChatWidget {
     pub(crate) fn handle_key_event(&mut self, key_event: KeyEvent) {
         // API key popup takes priority when visible
         if self.api_key_popup.visible {
-            self.api_key_popup.handle_key(key_event);
-            self.request_redraw();
-            return;
+            if self.api_key_popup.handle_key(key_event) {
+                self.request_redraw();
+                return;
+            }
         }
 
         if self.bottom_pane.has_active_view()
