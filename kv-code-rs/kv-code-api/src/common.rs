@@ -371,11 +371,27 @@ pub fn responses_to_chat_request(request: &ResponsesApiRequest) -> serde_json::V
         "stream": request.stream,
     });
 
-    // Add tools if present
+    // Add tools if present - convert from Responses format to Chat format
     if let Some(tools) = &request.tools {
-        body["tools"] = serde_json::json!(tools);
+        let chat_tools: Vec<serde_json::Value> = tools.iter().map(|tool| {
+            // Responses API tool format: { "type": "function", "name": "...", "description": "...", "parameters": {...} }
+            // Chat Completions format: { "type": "function", "function": { "name": "...", "description": "...", "parameters": {...} } }
+            if let Some(name) = tool.get("name") {
+                let function = serde_json::json!({
+                    "name": name,
+                    "description": tool.get("description").or(Some(&serde_json::Value::String("".into()))),
+                    "parameters": tool.get("parameters").or(Some(&serde_json::json!({"type": "object", "properties": {}}))),
+                });
+                serde_json::json!({
+                    "type": "function",
+                    "function": function,
+                })
+            } else {
+                tool.clone()
+            }
+        }).collect();
+        body["tools"] = serde_json::json!(chat_tools);
         body["tool_choice"] = serde_json::Value::String(request.tool_choice.clone());
-        body["parallel_tool_calls"] = serde_json::json!(request.parallel_tool_calls);
     }
 
     // Add reasoning effort
@@ -412,8 +428,9 @@ pub fn response_item_to_chat_message(item: &ResponseItem) -> Option<serde_json::
             if text_content.is_empty() {
                 None
             } else {
-                Some(serde_json::json!({
-                    "role": role,
+                let chat_role = if role == "developer" { "system" } else { role };
+            Some(serde_json::json!({
+                    "role": chat_role,
                     "content": text_content.join("\n")
                 }))
             }

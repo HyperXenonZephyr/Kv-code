@@ -1426,14 +1426,14 @@ impl ModelClientSession {
                 }
             };
 
-            let client = ApiResponsesClient::new(
-                transport,
-                client_setup.api_provider,
-                client_setup.api_auth,
-            )
-            .with_telemetry(Some(request_telemetry), Some(sse_telemetry));
             let stream_result = if is_chat {
-                client
+                let chat_client = codex_api::ChatCompletionsClient::new(
+                    transport,
+                    client_setup.api_provider,
+                    client_setup.api_auth,
+                )
+                .with_telemetry(Some(request_telemetry), Some(sse_telemetry));
+                chat_client
                     .stream(
                         request_body,
                         options.extra_headers,
@@ -1442,6 +1442,12 @@ impl ModelClientSession {
                     )
                     .await
             } else {
+                let client = ApiResponsesClient::new(
+                    transport,
+                    client_setup.api_provider,
+                    client_setup.api_auth,
+                )
+                .with_telemetry(Some(request_telemetry), Some(sse_telemetry));
                 client.stream_request(request, options).await
             };
 
