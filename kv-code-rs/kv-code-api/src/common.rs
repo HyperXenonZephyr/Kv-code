@@ -391,6 +391,7 @@ pub fn responses_to_chat_request(request: &ResponsesApiRequest) -> serde_json::V
         }).collect();
         if !chat_tools.is_empty() {
             body["tools"] = serde_json::json!(chat_tools);
+            body["tool_choice"] = serde_json::Value::String(request.tool_choice.clone());
         }
     }
 
