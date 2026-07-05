@@ -880,22 +880,6 @@ impl HistoryCell for StatusHistoryCell {
     ) -> Vec<crate::terminal_hyperlinks::HyperlinkLine> {
         let mut lines =
             crate::terminal_hyperlinks::plain_hyperlink_lines(self.display_lines(width));
-        for line in &mut lines {
-            let visible = line
-                .line
-                .spans
-                .iter()
-                .map(|span| span.content.as_ref())
-                .collect::<String>();
-            if let Some(start_byte) = visible.find(CHATGPT_USAGE_URL) {
-                let start = visible[..start_byte].width();
-                line.hyperlinks
-                    .push(crate::terminal_hyperlinks::TerminalHyperlink {
-                        columns: start..start + CHATGPT_USAGE_URL.width(),
-                        destination: CHATGPT_USAGE_URL.to_string(),
-                    });
-            }
-        }
         lines
     }
 
