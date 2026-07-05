@@ -63,6 +63,7 @@ impl App {
                 .await;
             }
             AppEvent::ApiKeyInput(name, url) => {
+                //eprintln!("[KVCODE] ApiKeyInput event: {} {}", name, url);
                 self.chat_widget.api_key_popup.open(&name, &url);
             }
             AppEvent::OpenResumePicker => {

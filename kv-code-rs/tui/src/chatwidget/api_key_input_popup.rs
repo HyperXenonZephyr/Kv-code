@@ -60,6 +60,7 @@ impl ApiKeyPopup {
     }
 
     pub(crate) fn render(&self, _area: Rect, buf: &mut Buffer) {
+        //eprintln!("[KVCODE] render v={} buf={}x{}", self.visible, buf.area.width, buf.area.height);
         if !self.visible || buf.area.width < 40 || buf.area.height < 10 { return; }
         let w = 56i16.min((buf.area.width as i16).saturating_sub(4)) as u16;
         let h = 10i16.min((buf.area.height as i16).saturating_sub(2)) as u16;
