@@ -123,6 +123,16 @@ impl<T: HttpTransport> ChatCompletionsClient<T> {
                                     if let Some(delta) = choice["delta"].as_object() {
                                         if let Some(content) = delta.get("content").and_then(|c| c.as_str()) {
                                             full_content.push_str(content);
+                            if full_content.is_empty() {
+                                let item = codex_protocol::models::ResponseItem::Message {
+                                    id: None,
+                                    role: "assistant".to_string(),
+                                    content: vec![],
+                                    phase: None,
+                                    internal_chat_message_metadata_passthrough: None,
+                                };
+                                let _ = tx_event.send(Ok(ResponseEvent::OutputItemAdded(item))).await;
+                            }
                                             let _ = tx_event.send(Ok(ResponseEvent::OutputTextDelta(content.to_string()))).await;
                                         }
                                     }
