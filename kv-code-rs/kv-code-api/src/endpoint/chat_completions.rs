@@ -10,6 +10,7 @@ use codex_client::EncodedJsonBody;
 use codex_client::HttpTransport;
 use codex_client::RequestCompression;
 use codex_client::RequestTelemetry;
+use futures::StreamExt;
 use http::HeaderMap;
 use http::HeaderValue;
 use http::Method;
@@ -22,15 +23,6 @@ use tracing::instrument;
 pub struct ChatCompletionsClient<T: HttpTransport> {
     session: EndpointSession<T>,
     sse_telemetry: Option<Arc<dyn SseTelemetry>>,
-}
-
-#[derive(Default)]
-pub struct ChatCompletionsOptions {
-    pub session_id: Option<String>,
-    pub thread_id: Option<String>,
-    pub extra_headers: HeaderMap,
-    pub compression: Compression,
-    pub turn_state: Option<Arc<OnceLock<String>>>,
 }
 
 impl<T: HttpTransport> ChatCompletionsClient<T> {
@@ -58,84 +50,117 @@ impl<T: HttpTransport> ChatCompletionsClient<T> {
 
     pub async fn stream(
         &self,
-        body: Value,
+        mut body: Value,
         extra_headers: HeaderMap,
         compression: Compression,
         turn_state: Option<Arc<OnceLock<String>>>,
     ) -> Result<ResponseStream, ApiError> {
-        // Use non-streaming request to avoid SSE format complexity
-        let mut body = body;
-        body["stream"] = Value::Bool(false);
+        // Use streaming
+        body["stream"] = Value::Bool(true);
 
         let request_compression = match compression {
             Compression::None => RequestCompression::None,
             Compression::Zstd => RequestCompression::Zstd,
         };
 
-        let response = self
+        let stream_response = self
             .session
             .stream_encoded_json_with(
                 Method::POST,
                 Self::path(),
                 extra_headers,
                 Some(EncodedJsonBody::encode(&body)
-                    .map_err(|e| ApiError::Stream(format!("failed to encode chat request: {e}")))?),
+                    .map_err(|e| ApiError::Stream(format!("encode error: {e}")))?),
                 |req| {
                     req.headers.insert(
                         http::header::ACCEPT,
-                        HeaderValue::from_static("application/json"),
+                        HeaderValue::from_static("text/event-stream"),
                     );
                     req.compression = request_compression;
                 },
             )
             .await?;
 
-        let (tx_event, rx_event) = mpsc::channel::<Result<ResponseEvent, ApiError>>(16);
-        let mut byte_stream = response.bytes;
+        let (tx_event, rx_event) = mpsc::channel::<Result<ResponseEvent, ApiError>>(64);
+        let mut byte_stream = stream_response.bytes;
 
         tokio::spawn(async move {
-            let mut full_response = Vec::new();
-            use futures::StreamExt;
-            while let Some(Ok(bytes)) = byte_stream.next().await {
-                full_response.extend_from_slice(&bytes);
-            }
+            let mut buf = String::new();
+            let mut content_accum = String::new();
+            let mut sent_item = false;
 
-            if let Ok(response_text) = String::from_utf8(full_response) {
-                if let Ok(parsed) = serde_json::from_str::<Value>(&response_text) {
-                    if let Some(content) = parsed["choices"][0]["message"]["content"].as_str() {
-                        let item = codex_protocol::models::ResponseItem::Message {
-                            id: None,
-                            role: "assistant".to_string(),
-                            content: vec![codex_protocol::models::ContentItem::OutputText {
-                                text: String::new(),
-                            }],
-                            phase: None,
-                            internal_chat_message_metadata_passthrough: None,
-                        };
-                        let item_id = format!("chat_{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_nanos());
-                        let mut item = item;
-                        if let codex_protocol::models::ResponseItem::Message { ref mut id, .. } = item {
-                            *id = Some(item_id.clone());
+            while let Some(Ok(bytes)) = byte_stream.next().await {
+                buf.push_str(&String::from_utf8_lossy(&bytes));
+                while let Some(nl) = buf.find('\n') {
+                    let line = buf[..nl].trim().to_string();
+                    buf = buf[nl + 1..].to_string();
+                    if !line.starts_with("data: ") { continue; }
+                    let data = &line[6..];
+                    if data == "[DONE]" {
+                        if !content_accum.is_empty() && sent_item {
+                            let item_id = format!("chat_{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_nanos());
+                            let done_item = codex_protocol::models::ResponseItem::Message {
+                                id: Some(item_id.clone()),
+                                role: "assistant".to_string(),
+                                content: vec![codex_protocol::models::ContentItem::OutputText { text: String::new() }],
+                                phase: None,
+                                internal_chat_message_metadata_passthrough: None,
+                            };
+                            let _ = tx_event.send(Ok(ResponseEvent::OutputItemDone(done_item))).await;
+                            let _ = tx_event.send(Ok(ResponseEvent::Completed {
+                                response_id: item_id,
+                                token_usage: None,
+                                end_turn: None,
+                            })).await;
                         }
-                        let _ = tx_event.send(Ok(ResponseEvent::OutputItemAdded(item.clone()))).await;
-                        for chunk in content.chars().collect::<Vec<_>>().chunks(1024) {
-                            let text: String = chunk.iter().collect();
-                            let _ = tx_event.send(Ok(ResponseEvent::OutputTextDelta(text))).await;
+                        return;
+                    }
+                    if let Ok(parsed) = serde_json::from_str::<Value>(data) {
+                        // Text content delta
+                        if let Some(delta) = parsed["choices"][0]["delta"]["content"].as_str() {
+                            if !sent_item {
+                                let item = codex_protocol::models::ResponseItem::Message {
+                                    id: None,
+                                    role: "assistant".to_string(),
+                                    content: vec![codex_protocol::models::ContentItem::OutputText { text: String::new() }],
+                                    phase: None,
+                                    internal_chat_message_metadata_passthrough: None,
+                                };
+                                let _ = tx_event.send(Ok(ResponseEvent::OutputItemAdded(item))).await;
+                                sent_item = true;
+                            }
+                            if !delta.is_empty() {
+                                content_accum.push_str(delta);
+                                let _ = tx_event.send(Ok(ResponseEvent::OutputTextDelta(delta.to_string()))).await;
+                            }
                         }
-                        let _ = tx_event.send(Ok(ResponseEvent::OutputItemDone(item))).await;
-                        let _ = tx_event.send(Ok(ResponseEvent::Completed {
-                            response_id: item_id,
-                            token_usage: None,
-                            end_turn: None,
-                        })).await;
+                        // Tool call delta
+                        if let Some(tcs) = parsed["choices"][0]["delta"]["tool_calls"].as_array() {
+                            for tc in tcs {
+                                if let Some(id) = tc["id"].as_str() {
+                                    if let Some(func) = tc["function"].as_object() {
+                                        let name = func.get("name").and_then(|v| v.as_str()).unwrap_or("");
+                                        let args = func.get("arguments").and_then(|v| v.as_str()).unwrap_or("");
+                                        if !name.is_empty() {
+                                            let fn_call = codex_protocol::models::ResponseItem::FunctionCall {
+                                                id: None,
+                                                call_id: id.to_string(),
+                                                name: name.to_string(),
+                                                namespace: None,
+                                                arguments: args.to_string(),
+                                                internal_chat_message_metadata_passthrough: None,
+                                            };
+                                            let _ = tx_event.send(Ok(ResponseEvent::OutputItemAdded(fn_call))).await;
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         });
 
-        Ok(ResponseStream {
-            rx_event,
-            upstream_request_id: None,
-        })
+        Ok(ResponseStream { rx_event, upstream_request_id: None })
     }
 }
