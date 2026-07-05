@@ -112,11 +112,22 @@ impl<T: HttpTransport> ChatCompletionsClient<T> {
                             phase: None,
                             internal_chat_message_metadata_passthrough: None,
                         };
-                        let _ = tx_event.send(Ok(ResponseEvent::OutputItemAdded(item))).await;
+                        let item_id = format!("chat_{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_nanos());
+                        let mut item = item;
+                        if let codex_protocol::models::ResponseItem::Message { ref mut id, .. } = item {
+                            *id = Some(item_id.clone());
+                        }
+                        let _ = tx_event.send(Ok(ResponseEvent::OutputItemAdded(item.clone()))).await;
                         for chunk in content.chars().collect::<Vec<_>>().chunks(1024) {
                             let text: String = chunk.iter().collect();
                             let _ = tx_event.send(Ok(ResponseEvent::OutputTextDelta(text))).await;
                         }
+                        let _ = tx_event.send(Ok(ResponseEvent::OutputItemDone(item))).await;
+                        let _ = tx_event.send(Ok(ResponseEvent::Completed {
+                            response_id: item_id,
+                            token_usage: None,
+                            end_turn: None,
+                        })).await;
                     }
                 }
             }
