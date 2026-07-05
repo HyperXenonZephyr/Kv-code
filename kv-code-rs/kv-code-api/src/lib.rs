@@ -33,6 +33,8 @@ pub use crate::common::OpenAiVerbosity;
 pub use crate::common::RawMemory;
 pub use crate::common::RawMemoryMetadata;
 pub use crate::common::Reasoning;
+pub use crate::common::responses_to_chat_request;
+pub use crate::common::response_item_to_chat_message;
 pub use crate::common::ReasoningContext;
 pub use crate::common::ResponseCreateWsRequest;
 pub use crate::common::ResponseEvent;

@@ -1411,13 +1411,39 @@ impl ModelClientSession {
             let inference_trace_attempt = inference_trace.start_attempt();
             inference_trace_attempt.add_request_headers(&mut options.extra_headers);
             inference_trace_attempt.record_started(&request);
+
+            let is_chat = self.client.state.provider.info().wire_api == WireApi::Chat;
+            let request_body = if is_chat {
+                codex_api::responses_to_chat_request(&request)
+            } else {
+                match serde_json::to_value(&request) {
+                    Ok(val) => val,
+                    Err(e) => {
+                        return Err(self.client.state.provider.map_api_error(
+                            ApiError::Stream(format!("failed to encode responses request: {e}"))
+                        ));
+                    }
+                }
+            };
+
             let client = ApiResponsesClient::new(
                 transport,
                 client_setup.api_provider,
                 client_setup.api_auth,
             )
             .with_telemetry(Some(request_telemetry), Some(sse_telemetry));
-            let stream_result = client.stream_request(request, options).await;
+            let stream_result = if is_chat {
+                client
+                    .stream(
+                        request_body,
+                        options.extra_headers,
+                        options.compression,
+                        options.turn_state,
+                    )
+                    .await
+            } else {
+                client.stream_request(request, options).await
+            };
 
             match stream_result {
                 Ok(stream) => {

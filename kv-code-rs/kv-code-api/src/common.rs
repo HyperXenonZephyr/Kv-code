@@ -1,6 +1,7 @@
 use crate::error::ApiError;
 use codex_protocol::config_types::ReasoningSummary as ReasoningSummaryConfig;
 use codex_protocol::config_types::Verbosity as VerbosityConfig;
+use codex_protocol::models::ContentItem;
 use codex_protocol::models::ResponseItem;
 use codex_protocol::openai_models::ReasoningEffort as ReasoningEffortConfig;
 use codex_protocol::protocol::ModelVerification;
@@ -341,5 +342,82 @@ impl Stream for ResponseStream {
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         self.rx_event.poll_recv(cx)
+    }
+}
+
+/// Convert a ResponsesApiRequest to a Chat Completions JSON body.
+pub fn responses_to_chat_request(request: &ResponsesApiRequest) -> serde_json::Value {
+    let mut messages: Vec<serde_json::Value> = Vec::new();
+
+    // Add instructions as system message
+    if !request.instructions.is_empty() {
+        messages.push(serde_json::json!({
+            "role": "system",
+            "content": request.instructions
+        }));
+    }
+
+    // Convert input items to messages
+    for item in &request.input {
+        if let Some(msg) = response_item_to_chat_message(item) {
+            messages.push(msg);
+        }
+    }
+
+    // Build the request body
+    let mut body = serde_json::json!({
+        "model": request.model,
+        "messages": messages,
+        "stream": request.stream,
+    });
+
+    // Add tools if present
+    if let Some(tools) = &request.tools {
+        body["tools"] = serde_json::json!(tools);
+        body["tool_choice"] = serde_json::Value::String(request.tool_choice.clone());
+        body["parallel_tool_calls"] = serde_json::json!(request.parallel_tool_calls);
+    }
+
+    // Add reasoning effort
+    if let Some(reasoning) = &request.reasoning {
+        body["reasoning_effort"] = serde_json::json!(reasoning.effort);
+        // Add thinking extra_body for DeepSeek
+        body["extra_body"] = serde_json::json!({
+            "thinking": {"type": "enabled"}
+        });
+    }
+
+    // Add text/response format if present
+    if let Some(text) = &request.text {
+        body["text"] = serde_json::to_value(text).unwrap_or_default();
+    }
+
+    body
+}
+
+/// Convert a ResponseItem to a chat message, if possible.
+pub fn response_item_to_chat_message(item: &ResponseItem) -> Option<serde_json::Value> {
+    match item {
+        ResponseItem::Message { role, content, .. } => {
+            let text_content: Vec<String> = content
+                .iter()
+                .filter_map(|c| {
+                    if let ContentItem::InputText { text } = c {
+                        Some(text.clone())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            if text_content.is_empty() {
+                None
+            } else {
+                Some(serde_json::json!({
+                    "role": role,
+                    "content": text_content.join("\n")
+                }))
+            }
+        }
+        _ => None,
     }
 }

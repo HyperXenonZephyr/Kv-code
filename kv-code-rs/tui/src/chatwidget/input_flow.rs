@@ -241,8 +241,11 @@ impl ChatWidget {
                         "ollama" => "llama3",
                         _ => "default",
                     };
-                    content.push_str(&format!("
-model = \"{}\"", model));
+                    content.push_str(&format!(
+                        "
+model = \"{}\"",
+                        model
+                    ));
                     let _ = std::fs::write(&config_path, &content);
                     self.add_error_message(format!("Saved! Model: {model}"));
                 } else {

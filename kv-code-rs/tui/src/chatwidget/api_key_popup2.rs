@@ -1,8 +1,13 @@
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::KeyCode;
+use crossterm::event::KeyEvent;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::prelude::*;
-use ratatui::widgets::{Block, Borders, Paragraph, Wrap, Clear};
+use ratatui::widgets::Block;
+use ratatui::widgets::Borders;
+use ratatui::widgets::Clear;
+use ratatui::widgets::Paragraph;
+use ratatui::widgets::Wrap;
 
 pub(crate) struct ApiKeyPopup2 {
     pub(crate) visible: bool,
@@ -14,7 +19,13 @@ pub(crate) struct ApiKeyPopup2 {
 
 impl ApiKeyPopup2 {
     pub(crate) fn new() -> Self {
-        Self { visible: false, provider_name: String::new(), base_url: String::new(), api_key: String::new(), saved: false }
+        Self {
+            visible: false,
+            provider_name: String::new(),
+            base_url: String::new(),
+            api_key: String::new(),
+            saved: false,
+        }
     }
 
     pub(crate) fn open(&mut self, name: &str, url: &str) {
@@ -26,15 +37,22 @@ impl ApiKeyPopup2 {
     }
 
     pub(crate) fn handle_key(&mut self, key: KeyEvent) -> bool {
-        if !self.visible { return false; }
+        if !self.visible {
+            return false;
+        }
         match key.code {
-            KeyCode::Esc => { self.visible = false; true }
+            KeyCode::Esc => {
+                self.visible = false;
+                true
+            }
             KeyCode::Enter => {
                 if !self.api_key.trim().is_empty() && !self.saved {
                     let home = std::env::var("KV_CODE_HOME")
                         .or_else(|_| std::env::var("CODEX_HOME"))
                         .unwrap_or_else(|_| {
-                            let h = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")).unwrap_or_default();
+                            let h = std::env::var("HOME")
+                                .or_else(|_| std::env::var("USERPROFILE"))
+                                .unwrap_or_default();
                             format!("{}/.kv-code", h)
                         });
                     let p = std::path::Path::new(&home).join("config.toml");
@@ -48,20 +66,37 @@ impl ApiKeyPopup2 {
                 }
                 true
             }
-            KeyCode::Char(c) => { if !self.saved { self.api_key.push(c); } true }
-            KeyCode::Backspace => { if !self.saved { self.api_key.pop(); } true }
+            KeyCode::Char(c) => {
+                if !self.saved {
+                    self.api_key.push(c);
+                }
+                true
+            }
+            KeyCode::Backspace => {
+                if !self.saved {
+                    self.api_key.pop();
+                }
+                true
+            }
             _ => false,
         }
     }
 
     pub(crate) fn render(&self, area: Rect, buf: &mut Buffer) {
-        if !self.visible || area.width < 20 || area.height < 5 { return; }
+        if !self.visible || area.width < 20 || area.height < 5 {
+            return;
+        }
         // Use area (full frame) for positioning, NOT buf.area (sub-buffer)
         let pw = 46.min(area.width.saturating_sub(4));
         let ph = 6.min(area.height.saturating_sub(2));
         let px = (area.width - pw) / 2;
         let py = (area.height - ph) / 3;
-        let popup = Rect { x: area.x + px, y: area.y + py, width: pw, height: ph };
+        let popup = Rect {
+            x: area.x + px,
+            y: area.y + py,
+            width: pw,
+            height: ph,
+        };
 
         let title = if self.saved {
             format!(" Saved: {} API Key ", self.provider_name)
@@ -71,7 +106,11 @@ impl ApiKeyPopup2 {
 
         let bullet = "\u{2022}";
         let dots: String = self.api_key.chars().map(|_| bullet).collect();
-        let display = if self.api_key.is_empty() { "(type your key...)".to_string() } else { dots };
+        let display = if self.api_key.is_empty() {
+            "(type your key...)".to_string()
+        } else {
+            dots
+        };
 
         let text = if self.saved {
             "API Key saved! Press ESC to close.".to_string()
@@ -81,8 +120,12 @@ impl ApiKeyPopup2 {
 
         Clear.render(popup, buf);
         Paragraph::new(text)
-            .block(Block::default().title(title).borders(Borders::ALL)
-                .border_style(Style::default().fg(Color::Cyan)))
+            .block(
+                Block::default()
+                    .title(title)
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(Color::Cyan)),
+            )
             .wrap(Wrap { trim: false })
             .render(popup, buf);
     }
