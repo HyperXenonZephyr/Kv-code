@@ -200,6 +200,7 @@ impl ChatWidget {
             input_queue: InputQueueState::default(),
             cancel_edit: CancelEditState::default(),
             api_key_popup: ApiKeyPopup::new(),
+            pending_api_key_provider: None,
             chat_keymap,
             queued_message_edit_hint_binding,
             show_welcome_banner: is_first_run,

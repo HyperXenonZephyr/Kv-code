@@ -37,8 +37,7 @@ impl ToolOutput for WebFetchOutput {
     }
 
     fn to_response_item(&self, call_id: &str, payload: &ToolPayload) -> ResponseInputItem {
-        FunctionToolOutput::from_text(self.0.clone(), Some(true))
-            .to_response_item(call_id, payload)
+        FunctionToolOutput::from_text(self.0.clone(), Some(true)).to_response_item(call_id, payload)
     }
 
     fn code_mode_result(&self, _payload: &ToolPayload) -> JsonValue {
@@ -121,9 +120,7 @@ impl ToolExecutor<ToolInvocation> for WebFetchHandler {
             }
 
             let body = response.text().await.map_err(|err| {
-                FunctionCallError::RespondToModel(format!(
-                    "failed to read response body: {err}"
-                ))
+                FunctionCallError::RespondToModel(format!("failed to read response body: {err}"))
             })?;
 
             Ok(boxed_tool_output(WebFetchOutput(body)))

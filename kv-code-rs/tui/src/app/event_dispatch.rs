@@ -62,6 +62,11 @@ impl App {
                 )
                 .await;
             }
+            AppEvent::ApiKeyInput(name, url) => {
+                self.chat_widget
+                    .add_error_message(format!("Type your API key for {} and press Enter", name));
+                self.chat_widget.pending_api_key_provider = Some((name, url));
+            }
             AppEvent::OpenResumePicker => {
                 let picker_app_server = match crate::start_app_server_for_picker(
                     &self.config,

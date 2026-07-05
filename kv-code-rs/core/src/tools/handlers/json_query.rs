@@ -113,9 +113,7 @@ impl ToolExecutor<ToolInvocation> for JsonQueryHandler {
             })?;
 
             let value: JsonValue = serde_json::from_str(&params.json).map_err(|err| {
-                FunctionCallError::RespondToModel(format!(
-                    "failed to parse input JSON: {err}"
-                ))
+                FunctionCallError::RespondToModel(format!("failed to parse input JSON: {err}"))
             })?;
 
             let result = match &params.path {
@@ -125,14 +123,11 @@ impl ToolExecutor<ToolInvocation> for JsonQueryHandler {
                     } else {
                         format!("/{path}")
                     };
-                    value
-                        .pointer(&pointer)
-                        .cloned()
-                        .ok_or_else(|| {
-                            FunctionCallError::RespondToModel(format!(
-                                "path '{path}' not found in JSON"
-                            ))
-                        })?
+                    value.pointer(&pointer).cloned().ok_or_else(|| {
+                        FunctionCallError::RespondToModel(format!(
+                            "path '{path}' not found in JSON"
+                        ))
+                    })?
                 }
                 _ => value,
             };

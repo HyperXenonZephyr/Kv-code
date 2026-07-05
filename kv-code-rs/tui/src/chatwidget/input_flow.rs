@@ -17,6 +17,32 @@ impl ChatWidget {
                 text,
                 text_elements,
             } => {
+                // Check if user is providing an API key
+                if let Some((ref provider_name, ref base_url)) =
+                    self.pending_api_key_provider.take()
+                {
+                    let api_key = text.trim().to_string();
+                    if !api_key.is_empty() {
+                        let codex_home = std::env::var("KV_CODE_HOME")
+                            .or_else(|_| std::env::var("CODEX_HOME"))
+                            .unwrap_or_else(|_| {
+                                let home = std::env::var("HOME")
+                                    .or_else(|_| std::env::var("USERPROFILE"))
+                                    .unwrap_or_default();
+                                format!("{}/.kv-code", home)
+                            });
+                        let config_path = std::path::Path::new(&codex_home).join("config.toml");
+                        let mut content = std::fs::read_to_string(&config_path).unwrap_or_default();
+                        content.push_str(&format!("\n[providers.{}]\ntype = \"openai\"\nbase_url = \"{}\"\napi_key = \"{}\"\n", provider_name, base_url, api_key));
+                        if std::fs::write(&config_path, &content).is_ok() {
+                            self.add_error_message(format!("Saved API key for {provider_name}!"));
+                        } else {
+                            self.add_error_message("Failed to save API key.".to_string());
+                        }
+                    }
+                    self.request_redraw();
+                    return;
+                }
                 let user_message = self.user_message_from_submission(text, text_elements);
                 if user_message.text.is_empty()
                     && user_message.local_images.is_empty()
@@ -189,6 +215,33 @@ impl ChatWidget {
         text: String,
         mut collaboration_mode: CollaborationModeMask,
     ) {
+        // Check if user is providing an API key
+        if let Some((ref provider_name, ref base_url)) = self.pending_api_key_provider.take() {
+            let api_key = text.trim().to_string();
+            if !api_key.is_empty() {
+                let codex_home = std::env::var("KV_CODE_HOME")
+                    .or_else(|_| std::env::var("CODEX_HOME"))
+                    .unwrap_or_else(|_| {
+                        let home = std::env::var("HOME")
+                            .or_else(|_| std::env::var("USERPROFILE"))
+                            .unwrap_or_default();
+                        format!("{}/.kv-code", home)
+                    });
+                let config_path = std::path::Path::new(&codex_home).join("config.toml");
+                let mut content = std::fs::read_to_string(&config_path).unwrap_or_default();
+                content.push_str(&format!(
+                    "\n[providers.{}]\ntype = \"openai\"\nbase_url = \"{}\"\napi_key = \"{}\"\n",
+                    provider_name, base_url, api_key
+                ));
+                if std::fs::write(&config_path, &content).is_ok() {
+                    self.add_error_message(format!("Saved API key for {provider_name}!"));
+                } else {
+                    self.add_error_message("Failed to save API key.".to_string());
+                }
+            }
+            self.request_redraw();
+            return;
+        }
         if collaboration_mode.mode == Some(ModeKind::Plan)
             && let Some(effort) = self.config.plan_mode_reasoning_effort.clone()
         {

@@ -666,6 +666,8 @@ pub(crate) struct ChatWidget {
     input_queue: InputQueueState,
     cancel_edit: CancelEditState,
     pub(crate) api_key_popup: ApiKeyPopup,
+    /// When set, the next composer text submission is treated as an API key for this provider.
+    pub(crate) pending_api_key_provider: Option<(String, String)>,
     /// Main chat-surface bindings resolved from `tui.keymap.chat`.
     chat_keymap: ChatKeymap,
     /// Keybinding to show for popping the most-recently queued message back

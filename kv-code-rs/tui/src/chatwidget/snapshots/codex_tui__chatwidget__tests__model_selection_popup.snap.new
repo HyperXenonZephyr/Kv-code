@@ -1,0 +1,8 @@
+---
+source: tui/src/chatwidget/tests/popups_and_settings.rs
+assertion_line: 3087
+expression: popup
+---
+› Ask KV Code to do anything
+
+  gpt-5.2 default · C:\tmp\project

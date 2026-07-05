@@ -34,8 +34,7 @@ impl ToolOutput for UuidGenOutput {
     }
 
     fn to_response_item(&self, call_id: &str, payload: &ToolPayload) -> ResponseInputItem {
-        FunctionToolOutput::from_text(self.0.clone(), Some(true))
-            .to_response_item(call_id, payload)
+        FunctionToolOutput::from_text(self.0.clone(), Some(true)).to_response_item(call_id, payload)
     }
 
     fn code_mode_result(&self, _payload: &ToolPayload) -> JsonValue {

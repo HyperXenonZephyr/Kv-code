@@ -1,6 +1,7 @@
 use clap::Parser;
 use codex_core::config::find_codex_home;
-use std::io::{self, Write};
+use std::io::Write;
+use std::io::{self};
 
 #[derive(Debug, Parser)]
 pub struct InitCommand;
