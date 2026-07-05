@@ -55,14 +55,13 @@ impl ApiKeyPopup2 {
     }
 
     pub(crate) fn render(&self, area: Rect, buf: &mut Buffer) {
-        if !self.visible || buf.area.width < 20 || buf.area.height < 5 { return; }
-        let fw = buf.area.width;
-        let fh = buf.area.height;
-        let pw = 46.min(fw.saturating_sub(4));
-        let ph = 6.min(fh.saturating_sub(2));
-        let px = (fw - pw) / 2;
-        let py = (fh - ph) / 3;
-        let popup = Rect { x: px, y: py, width: pw, height: ph };
+        if !self.visible || area.width < 20 || area.height < 5 { return; }
+        // Use area (full frame) for positioning, NOT buf.area (sub-buffer)
+        let pw = 46.min(area.width.saturating_sub(4));
+        let ph = 6.min(area.height.saturating_sub(2));
+        let px = (area.width - pw) / 2;
+        let py = (area.height - ph) / 3;
+        let popup = Rect { x: area.x + px, y: area.y + py, width: pw, height: ph };
 
         let title = if self.saved {
             format!(" Saved: {} API Key ", self.provider_name)
