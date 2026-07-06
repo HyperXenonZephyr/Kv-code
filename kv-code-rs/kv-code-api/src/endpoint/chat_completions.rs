@@ -137,20 +137,29 @@ impl<T: HttpTransport> ChatCompletionsClient<T> {
                         // Tool call delta
                         if let Some(tcs) = parsed["choices"][0]["delta"]["tool_calls"].as_array() {
                             for tc in tcs {
-                                if let Some(id) = tc["id"].as_str() {
+                                if tc.get("id").and_then(|v| v.as_str()).is_some() {
+                                    // New tool call with ID - send OutputItemAdded
+                                    let id = tc["id"].as_str().unwrap_or("");
                                     if let Some(func) = tc["function"].as_object() {
                                         let name = func.get("name").and_then(|v| v.as_str()).unwrap_or("");
                                         let args = func.get("arguments").and_then(|v| v.as_str()).unwrap_or("");
-                                        if !name.is_empty() {
-                                            let fn_call = codex_protocol::models::ResponseItem::FunctionCall {
-                                                id: None,
-                                                call_id: id.to_string(),
-                                                name: name.to_string(),
-                                                namespace: None,
-                                                arguments: args.to_string(),
-                                                internal_chat_message_metadata_passthrough: None,
-                                            };
-                                            let _ = tx_event.send(Ok(ResponseEvent::OutputItemAdded(fn_call))).await;
+                                        let fn_call = codex_protocol::models::ResponseItem::FunctionCall {
+                                            id: None,
+                                            call_id: id.to_string(),
+                                            name: name.to_string(),
+                                            namespace: None,
+                                            arguments: args.to_string(),
+                                            internal_chat_message_metadata_passthrough: None,
+                                        };
+                                        let _ = tx_event.send(Ok(ResponseEvent::OutputItemAdded(fn_call.clone()))).await;
+                                        let _ = tx_event.send(Ok(ResponseEvent::OutputItemDone(fn_call))).await;
+                                        sent_item = true;
+                                    }
+                                } else if let Some(func) = tc["function"].as_object() {
+                                    if let Some(args) = func.get("arguments").and_then(|v| v.as_str()) {
+                                        if !args.is_empty() {
+                                            // Send partial args as text delta so the UI shows progress
+                                            // Actually skip this for now - tool calls are handled differently
                                         }
                                     }
                                 }
