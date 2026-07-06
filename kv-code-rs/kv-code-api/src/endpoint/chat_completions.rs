@@ -97,22 +97,22 @@ impl<T: HttpTransport> ChatCompletionsClient<T> {
                     if !line.starts_with("data: ") { continue; }
                     let data = &line[6..];
                     if data == "[DONE]" {
-                        if !content_accum.is_empty() && sent_item {
-                            let item_id = format!("chat_{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_nanos());
+                        let item_id = format!("chat_{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_nanos());
+                        if sent_item {
                             let done_item = codex_protocol::models::ResponseItem::Message {
                                 id: Some(item_id.clone()),
                                 role: "assistant".to_string(),
-                                content: vec![codex_protocol::models::ContentItem::OutputText { text: String::new() }],
+                                content: vec![codex_protocol::models::ContentItem::OutputText { text: content_accum.clone() }],
                                 phase: None,
                                 internal_chat_message_metadata_passthrough: None,
                             };
                             let _ = tx_event.send(Ok(ResponseEvent::OutputItemDone(done_item))).await;
-                            let _ = tx_event.send(Ok(ResponseEvent::Completed {
-                                response_id: item_id,
-                                token_usage: None,
-                                end_turn: None,
-                            })).await;
                         }
+                        let _ = tx_event.send(Ok(ResponseEvent::Completed {
+                            response_id: item_id,
+                            token_usage: None,
+                            end_turn: None,
+                        })).await;
                         return;
                     }
                     if let Ok(parsed) = serde_json::from_str::<Value>(data) {
