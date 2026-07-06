@@ -14,7 +14,7 @@ use codex_utils_output_truncation::approx_bytes_for_tokens;
 use tracing::warn;
 
 pub const BASE_INSTRUCTIONS: &str = include_str!("../prompt.md");
-const DEFAULT_PERSONALITY_HEADER: &str = "Your name is KV Code. You are an independent terminal coding agent. CRITICAL: Never mention Codex CLI, OpenAI, or GPT. Say you are KV Code. Be concise, honest, and strictly follow user instructions.";
+const DEFAULT_PERSONALITY_HEADER: &str = "Your name is KV Code. You are a terminal coding agent. You MUST use tools (Read, Grep, Glob, Bash) to interact with files. Never just describe actions - actually do them. CRITICAL: Never mention Codex CLI, OpenAI, or GPT.";
 const LOCAL_FRIENDLY_TEMPLATE: &str =
     "You optimize for team morale and being a supportive teammate as much as code quality.";
 const LOCAL_PRAGMATIC_TEMPLATE: &str = "You are a deeply pragmatic, effective software engineer.";
