@@ -116,20 +116,20 @@ impl<T: HttpTransport> ChatCompletionsClient<T> {
                         return;
                     }
                     if let Ok(parsed) = serde_json::from_str::<Value>(data) {
-                        // Text content delta
+                        // Text content delta - always send OutputItemAdded if first text chunk
                         if let Some(delta) = parsed["choices"][0]["delta"]["content"].as_str() {
-                            if !sent_item {
-                                let item = codex_protocol::models::ResponseItem::Message {
-                                    id: None,
-                                    role: "assistant".to_string(),
-                                    content: vec![codex_protocol::models::ContentItem::OutputText { text: String::new() }],
-                                    phase: None,
-                                    internal_chat_message_metadata_passthrough: None,
-                                };
-                                let _ = tx_event.send(Ok(ResponseEvent::OutputItemAdded(item))).await;
-                                sent_item = true;
-                            }
                             if !delta.is_empty() {
+                                if !sent_item || content_accum.is_empty() {
+                                    let item = codex_protocol::models::ResponseItem::Message {
+                                        id: None,
+                                        role: "assistant".to_string(),
+                                        content: vec![codex_protocol::models::ContentItem::OutputText { text: String::new() }],
+                                        phase: None,
+                                        internal_chat_message_metadata_passthrough: None,
+                                    };
+                                    let _ = tx_event.send(Ok(ResponseEvent::OutputItemAdded(item))).await;
+                                    sent_item = true;
+                                }
                                 content_accum.push_str(delta);
                                 let _ = tx_event.send(Ok(ResponseEvent::OutputTextDelta(delta.to_string()))).await;
                             }
