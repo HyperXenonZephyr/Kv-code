@@ -371,8 +371,11 @@ pub fn responses_to_chat_request(request: &ResponsesApiRequest) -> serde_json::V
         "stream": request.stream,
     });
 
+    // On follow-up requests (after tool calls), don't include tools - force text response
+    let has_tool_results = request.input.iter().any(|item| matches!(item, codex_protocol::models::ResponseItem::FunctionCallOutput { .. }));
+    
     // Add tools if present - convert from Responses format to Chat format
-    if let Some(tools) = &request.tools {
+    if !has_tool_results { if let Some(tools) = &request.tools {
         let chat_tools: Vec<serde_json::Value> = tools.iter().filter_map(|tool| {
             // Only keep function-type tools (Chat API doesn't support web_search etc.)
             if tool.get("type").and_then(|t| t.as_str()) != Some("function") {
@@ -393,7 +396,7 @@ pub fn responses_to_chat_request(request: &ResponsesApiRequest) -> serde_json::V
             body["tools"] = serde_json::json!(chat_tools);
             body["tool_choice"] = serde_json::Value::String(request.tool_choice.clone());
         }
-    }
+    } }
 
     // Add reasoning effort
     if let Some(reasoning) = &request.reasoning {
