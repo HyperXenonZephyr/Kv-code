@@ -418,6 +418,25 @@ pub fn responses_to_chat_request(request: &ResponsesApiRequest) -> serde_json::V
 /// Convert a ResponseItem to a chat message, if possible.
 pub fn response_item_to_chat_message(item: &ResponseItem) -> Option<serde_json::Value> {
     match item {
+        ResponseItem::FunctionCallOutput { call_id, output, .. } => {
+            let content = match &output.body {
+                codex_protocol::models::FunctionCallOutputBody::Text(t) => t.clone(),
+                codex_protocol::models::FunctionCallOutputBody::ContentItems(items) => items.iter().map(|i| format!("{:?}", i)).collect::<Vec<_>>().join("
+"),
+            };
+            Some(serde_json::json!({
+                "role": "tool",
+                "tool_call_id": call_id,
+                "content": content
+            }))
+        }
+        ResponseItem::CustomToolCallOutput { call_id, output, .. } => {
+            Some(serde_json::json!({
+                "role": "tool",
+                "tool_call_id": call_id,
+                "content": serde_json::to_string(output).unwrap_or_default()
+            }))
+        }
         ResponseItem::Message { role, content, .. } => {
             let text_content: Vec<String> = content
                 .iter()
