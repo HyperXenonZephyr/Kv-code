@@ -445,6 +445,33 @@ pub fn response_item_to_chat_message(item: &ResponseItem) -> Option<serde_json::
                 "content": content
             }))
         }
+        ResponseItem::FunctionCall { call_id, name, arguments, .. } => {
+            let tc_id = call_id.clone();
+            Some(serde_json::json!({
+                "role": "assistant",
+                "content": null,
+                "tool_calls": [{
+                    "id": tc_id,
+                    "type": "function",
+                    "function": {
+                        "name": name,
+                        "arguments": arguments
+                    }
+                }]
+            }))
+        }
+        ResponseItem::FunctionCallOutput { call_id, output, .. } => {
+            let content = match &output.body {
+                codex_protocol::models::FunctionCallOutputBody::Text(t) => t.clone(),
+                codex_protocol::models::FunctionCallOutputBody::ContentItems(items) => items.iter().map(|i| format!("{:?}", i)).collect::<Vec<_>>().join("
+"),
+            };
+            Some(serde_json::json!({
+                "role": "tool",
+                "tool_call_id": call_id,
+                "content": content
+            }))
+        }
         ResponseItem::CustomToolCallOutput { call_id, output, .. } => {
             Some(serde_json::json!({
                 "role": "tool",
