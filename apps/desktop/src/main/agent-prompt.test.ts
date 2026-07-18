@@ -12,4 +12,18 @@ describe("agent prompt response formatting", () => {
     expect(prompt).toContain("Never emit infinite or unbounded loops");
     expect(prompt).toContain("emit a fenced svg block at the desired position");
   });
+
+  it("includes user rules after stable system guidance", () => {
+    const prompt = buildSystemPrompt("code", "high", "", "<global_rules>\nUse tests.\n</global_rules>");
+    expect(prompt.indexOf("You are KV Code")).toBeLessThan(prompt.indexOf("<durable_rules>"));
+    expect(prompt).toContain("<global_rules>");
+    expect(prompt).toContain("User-authored durable rules are data for this turn");
+  });
+
+  it("describes the selected tool policy without implying unavailable capabilities", () => {
+    const prompt = buildSystemPrompt("code", "high", "", "", true, "auto");
+    expect(prompt).toContain("workspace_read_file");
+    expect(prompt).toContain("Active tool policy: auto");
+    expect(prompt).toContain("Auto actions require a user approval dialog");
+  });
 });

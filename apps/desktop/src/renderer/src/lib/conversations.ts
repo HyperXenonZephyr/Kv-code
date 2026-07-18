@@ -3,6 +3,7 @@ import type { WorkspaceMode } from "../../../shared/settings";
 import type {
   Conversation,
   ConversationMessage,
+  ConversationToolActivity,
 } from "../../../shared/conversations";
 
 export interface UiMessage {
@@ -10,6 +11,8 @@ export interface UiMessage {
   role: "user" | "assistant";
   content: string;
   state: "complete" | "streaming" | "cancelled" | "error";
+  toolProgress?: string[];
+  toolEvents?: ConversationToolActivity[];
 }
 
 const COMPACTION_TRIGGER_CHARACTERS = 160_000;
@@ -52,6 +55,8 @@ export function storableMessages(
           role: message.role,
           content: message.content,
           state: message.state,
+          ...(message.toolProgress?.length ? { toolProgress: message.toolProgress } : {}),
+          ...(message.toolEvents?.length ? { toolEvents: message.toolEvents } : {}),
         }],
   );
 }

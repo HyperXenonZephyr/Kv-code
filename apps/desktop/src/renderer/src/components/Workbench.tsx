@@ -12,6 +12,9 @@ import {
   Send,
   Square,
   SquareTerminal,
+  ShieldCheck,
+  ShieldOff,
+  Zap,
   UserRound,
 } from "lucide-react";
 import {
@@ -24,9 +27,14 @@ import {
   useState,
   type KeyboardEvent,
 } from "react";
-import type { AppSettings, ReasoningEffort, WorkspaceMode } from "../../../shared/settings";
+import type { AppSettings, ReasoningEffort, ToolPolicy, WorkspaceMode } from "../../../shared/settings";
 import type { ProviderSummary } from "../../../shared/providers";
-import type { Conversation, ConversationMessage, ConversationSummary } from "../../../shared/conversations";
+import type {
+  Conversation,
+  ConversationMessage,
+  ConversationSummary,
+  ConversationToolActivity,
+} from "../../../shared/conversations";
 import type { WorkspaceEntry } from "../../../shared/workspace-files";
 import { useI18n } from "../i18n";
 import { desktop } from "../lib/desktop";
@@ -55,6 +63,7 @@ export function Workbench({
   ultraIntro,
   onModeChange,
   onReasoningChange,
+  onToolPolicyChange,
   onProviderChange,
   onChooseDirectory,
   onOpenSettings,
@@ -68,6 +77,7 @@ export function Workbench({
   ultraIntro: boolean;
   onModeChange(mode: WorkspaceMode): void;
   onReasoningChange(effort: ReasoningEffort): void;
+  onToolPolicyChange(policy: ToolPolicy): void;
   onProviderChange(providerId: string): void;
   onChooseDirectory(): void;
   onOpenSettings(): void;
@@ -85,11 +95,13 @@ export function Workbench({
   const [workspaceRevision, setWorkspaceRevision] = useState(0);
   const [documentRevision, setDocumentRevision] = useState(0);
   const activeAssistantId = useRef<string | null>(null);
+  const activeAssistantText = useRef("");
   const activeTurnIdRef = useRef<string | null>(null);
   const activeConversation = useRef<Conversation | null>(null);
   const activeDocumentRef = useRef<WorkspaceEntry | null>(null);
   const transcript = useRef<HTMLDivElement | null>(null);
   const activeProvider = providers.find((provider) => provider.id === activeProviderId);
+  const basicToolsEnabled = Boolean(activeProvider && (activeProvider.protocol === "openai-chat" || activeProvider.protocol === "openai-responses"));
   const workspaceName = workspace.split(/[\\/]/).filter(Boolean).at(-1);
   const contextCharacters = useMemo(
     () => messages.reduce((total, message) => total + message.content.length, 0),
@@ -147,10 +159,42 @@ export function Workbench({
   useEffect(
     () => desktop.onChatEvent((event) => {
       if (event.turnId !== activeTurnIdRef.current) return;
+      if (event.type === "tool") {
+        const assistantId = activeAssistantId.current;
+        if (!assistantId) return;
+        let progress = "";
+        if (event.status === "started") {
+          // Text emitted in a tool-call round is progress, not the final answer.
+          // Move it out of the assistant bubble once the provider confirms the call.
+          progress = activeAssistantText.current.trim();
+          if (progress) {
+            activeAssistantText.current = "";
+          }
+        }
+        setMessages((current) => current.map((message) => {
+          if (message.id !== assistantId) return message;
+          const events = message.toolEvents ?? [];
+          const existing = events.some((item) => item.callId === event.callId);
+          return {
+            ...message,
+            content: progress ? "" : message.content,
+            toolProgress: progress
+              ? [...(message.toolProgress ?? []), progress]
+              : message.toolProgress,
+            toolEvents: existing
+              ? events.map((item) => item.callId === event.callId
+                ? { ...item, ...event, detail: event.detail ?? item.detail }
+                : item)
+              : [...events, event],
+          };
+        }));
+        return;
+      }
       const assistantId = activeAssistantId.current;
       if (!assistantId) return;
 
       if (event.type === "delta") {
+        activeAssistantText.current += event.text;
         setMessages((current) => current.map((message) =>
           message.id === assistantId
             ? { ...message, content: `${message.content}${event.text}` }
@@ -195,6 +239,7 @@ export function Workbench({
       setActiveTurnId(null);
       activeTurnIdRef.current = null;
       activeAssistantId.current = null;
+      activeAssistantText.current = "";
     }),
     [t],
   );
@@ -230,6 +275,7 @@ export function Workbench({
     setActiveTurnId(turnId);
     activeTurnIdRef.current = turnId;
     activeAssistantId.current = assistantMessage.id;
+    activeAssistantText.current = "";
     try {
       let conversation = activeConversation.current;
       if (!conversation) {
@@ -251,6 +297,7 @@ export function Workbench({
       await desktop.startChat({
         turnId,
         providerId: activeProvider.id,
+        workspace,
         mode,
         reasoning,
         additionalInstructions: settings.additionalInstructions,
@@ -274,6 +321,7 @@ export function Workbench({
       setActiveTurnId(null);
       activeTurnIdRef.current = null;
       activeAssistantId.current = null;
+      activeAssistantText.current = "";
     }
   };
 
@@ -287,9 +335,11 @@ export function Workbench({
   const newConversation = () => {
     if (activeTurnId) return;
     activeConversation.current = null;
+    activeAssistantText.current = "";
     setActiveSessionId(null);
     setMessages([]);
     setDraft("");
+    activeAssistantText.current = "";
     setActiveDocument(null);
   };
 
@@ -495,6 +545,12 @@ export function Workbench({
                   <strong>{message.role === "user" ? "YOU" : activeProvider?.name.toUpperCase()}</strong>
                   <span>{message.state.toUpperCase()}</span>
                 </header>
+                {message.role === "assistant" && Boolean(message.toolProgress?.length) && (
+                  <ToolProgress items={message.toolProgress ?? []} />
+                )}
+                {message.role === "assistant" && Boolean(message.toolEvents?.length) && (
+                  <ToolTrace events={message.toolEvents ?? []} />
+                )}
                 {message.role === "assistant" && message.content ? (
                   <AssistantMarkdown content={message.content} />
                 ) : (
@@ -514,7 +570,7 @@ export function Workbench({
             <h1>{activeProvider ? activeProvider.name : t("workbench.noConversation")}</h1>
             <p>
               {activeProvider
-                ? `${activeProvider.model} / ${mode.toUpperCase()} / ${t("workbench.toolsOff")}`
+                ? `${activeProvider.model} / ${mode.toUpperCase()} / ${t(basicToolsEnabled ? "workbench.toolsReadOnly" : "workbench.toolsOff")}`
                 : t("workbench.providerRequiredDetail")}
             </p>
             {!activeProvider && (
@@ -527,6 +583,11 @@ export function Workbench({
         )}
 
         <div className="composer-zone">
+          <ToolPolicyControl
+            value={settings.toolPolicy}
+            disabled={!activeProvider || !basicToolsEnabled || Boolean(activeTurnId)}
+            onChange={(toolPolicy) => onToolPolicyChange(toolPolicy)}
+          />
           <ReasoningControl
             compact
             value={reasoning}
@@ -581,7 +642,7 @@ export function Workbench({
         <div className="context-meter">
           <i style={{ width: `${Math.min(100, contextCharacters / 2_400)}%` }} />
         </div>
-        <p>{t("workbench.toolsOff")}</p>
+        <p>{t(basicToolsEnabled ? "workbench.toolsReadOnly" : "workbench.toolsOff")}</p>
         <div className="runtime-spec">
           <span>MODE</span><strong>{mode.toUpperCase()}</strong>
           <span>EFFORT</span><strong>{reasoning.toUpperCase()}</strong>
@@ -589,6 +650,80 @@ export function Workbench({
         </div>
       </aside>
     </section>
+  );
+}
+
+function ToolProgress({ items }: { items: string[] }) {
+  return (
+    <div className="tool-progress" aria-label="Model progress">
+      {items.map((item, index) => (
+        <div className="tool-progress-item" key={`${index}-${item.slice(0, 24)}`}>
+          <Bot size={13} aria-hidden="true" />
+          <div>{item}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ToolTrace({ events }: { events: ConversationToolActivity[] }) {
+  const { t } = useI18n();
+  return (
+    <div className="tool-trace" aria-live="polite">
+      {events.map((event) => {
+        const status = event.status === "started"
+          ? t("tools.statusStarted")
+          : event.status === "completed"
+            ? t("tools.statusCompleted")
+            : t("tools.statusError");
+        return (
+          <div className={`tool-trace-row ${event.status}`} key={event.callId}>
+            <span className="tool-trace-mark" aria-hidden="true" />
+            <strong>{event.name}</strong>
+            <span>{status}</span>
+            {event.detail && <small>{event.detail}</small>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ToolPolicyControl({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: ToolPolicy;
+  disabled: boolean;
+  onChange(value: ToolPolicy): void;
+}) {
+  const { t } = useI18n();
+  const options: Array<[ToolPolicy, typeof ShieldCheck, string]> = [
+    ["read-only", ShieldCheck, t("tools.policyReadOnly")],
+    ["auto", Zap, t("tools.policyAuto")],
+    ["yolo", ShieldOff, t("tools.policyYolo")],
+  ];
+  return (
+    <div className="tool-policy-control" aria-label={t("tools.policyTitle")}>
+      <small>{t("tools.policyTitle")}</small>
+      <div className="tool-policy-options">
+        {options.map(([policy, Icon, label]) => (
+          <button
+            key={policy}
+            className={value === policy ? "active" : ""}
+            disabled={disabled}
+            title={label}
+            aria-label={label}
+            aria-pressed={value === policy}
+            onClick={() => onChange(policy)}
+          >
+            <Icon size={13} />
+            <span>{policy === "read-only" ? "RO" : policy.toUpperCase()}</span>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 

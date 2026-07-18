@@ -4,11 +4,20 @@ import { workspaceModeSchema } from "./settings";
 export const conversationIdSchema = z.string().regex(/^[A-Za-z0-9_-]{1,100}$/);
 export const conversationWorkspaceSchema = z.string().max(4_096);
 
+export const conversationToolActivitySchema = z.object({
+  callId: z.string().max(200),
+  name: z.string().max(80),
+  status: z.enum(["started", "completed", "error"]),
+  detail: z.string().max(500).optional(),
+});
+
 export const conversationMessageSchema = z.object({
   id: conversationIdSchema,
   role: z.enum(["user", "assistant"]),
   content: z.string().max(32_000),
   state: z.enum(["complete", "cancelled", "error"]),
+  toolProgress: z.array(z.string().max(4_000)).max(32).optional(),
+  toolEvents: z.array(conversationToolActivitySchema).max(128).optional(),
 });
 
 const conversationObjectSchema = z.object({
@@ -69,6 +78,7 @@ export const conversationCompactionRequestSchema = z
   });
 
 export type ConversationMessage = z.infer<typeof conversationMessageSchema>;
+export type ConversationToolActivity = z.infer<typeof conversationToolActivitySchema>;
 export type Conversation = z.infer<typeof conversationSchema>;
 export type ConversationSummary = z.infer<typeof conversationSummarySchema>;
 export type ConversationCompactionRequest = z.infer<

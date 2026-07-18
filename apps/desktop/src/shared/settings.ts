@@ -16,6 +16,11 @@ import type {
   WorkspaceEntry,
   WorkspaceFile,
 } from "./workspace-files";
+import type {
+  RulesReadRequest,
+  RulesSaveRequest,
+  RulesSnapshot,
+} from "./rules";
 
 export const themeModeSchema = z.enum(["system", "dark", "light"]);
 export const localeSchema = z.enum(["en", "zh-CN"]);
@@ -28,6 +33,7 @@ export const reasoningEffortSchema = z.enum([
   "xhigh",
   "ultra",
 ]);
+export const toolPolicySchema = z.enum(["read-only", "auto", "yolo"]);
 
 export const appSettingsSchema = z.object({
   theme: themeModeSchema,
@@ -42,6 +48,7 @@ export const appSettingsSchema = z.object({
   restoreLastSession: z.boolean(),
   runInBackground: z.boolean(),
   additionalInstructions: z.string().max(4_000),
+  toolPolicy: toolPolicySchema,
 });
 
 export type AppSettings = z.infer<typeof appSettingsSchema>;
@@ -50,6 +57,7 @@ export type Locale = z.infer<typeof localeSchema>;
 export type Density = z.infer<typeof densitySchema>;
 export type WorkspaceMode = z.infer<typeof workspaceModeSchema>;
 export type ReasoningEffort = z.infer<typeof reasoningEffortSchema>;
+export type ToolPolicy = z.infer<typeof toolPolicySchema>;
 
 export const defaultSettings: AppSettings = {
   theme: "dark",
@@ -64,6 +72,7 @@ export const defaultSettings: AppSettings = {
   restoreLastSession: true,
   runInBackground: false,
   additionalInstructions: "",
+  toolPolicy: "read-only",
 };
 
 export interface SystemInfo {
@@ -88,6 +97,8 @@ export interface KvDesktopApi {
   saveConversation(conversation: Conversation): Promise<ConversationSummary[]>;
   removeConversation(workspace: string, conversationId: string): Promise<ConversationSummary[]>;
   compactConversation(request: ConversationCompactionRequest): Promise<string>;
+  readRules(request: RulesReadRequest): Promise<RulesSnapshot>;
+  saveRules(request: RulesSaveRequest): Promise<RulesSnapshot>;
   listWorkspaceDirectory(workspace: string, path: string): Promise<WorkspaceEntry[]>;
   readWorkspaceFile(workspace: string, path: string): Promise<WorkspaceFile>;
   registerInlineDocument(document: string): Promise<string>;

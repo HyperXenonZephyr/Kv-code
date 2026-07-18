@@ -3,23 +3,46 @@
 KV Code is being rewritten from first principles as a local-first AI workbench
 for developers and technical knowledge workers.
 
-This repository contains the product and engineering specification plus a
-reviewable Desktop foundation. The window shell, Workbench, persistent local
-settings, themes, localization, reasoning control, encrypted provider setup,
-streaming chat, durable workspace-scoped conversations, rolling context
-compaction, lazy workspace files, and built-in DOCX/PPTX/XLSX previews are
-implemented. Tools, terminal, Git operations, browser control, rules, memory,
-and multi-agent execution remain planned. Planned sections in the application
-are labeled explicitly and this document must not be read as a claim that those
-features already exist.
+This repository currently contains one runnable application:
+`apps/desktop`. It is a TypeScript, Electron, React, and Vite Desktop
+implementation. The CLI, daemon, shared `packages/` architecture, SQLite
+persistence, live PTY terminal, browser control, memory, skills, and
+multi-agent runtime described later in this document are target requirements;
+they do not exist in the current source tree.
 
 The previous implementation was removed because its inherited architecture,
 unused features, build cost, compatibility layers, and product boundaries made
 continued development slower and less reliable than a clean rewrite.
 
-## Project Status
+## Development and Test Packaging
+
+Run the Desktop application from source with `pnpm dev`. Build a portable
+Windows x64 test executable with `pnpm package:win`; the artifact is written to
+`apps/desktop/dist/` and can be copied to another Windows computer without a
+Node.js or pnpm installation.
+
+The package contains only compiled application files, runtime dependencies,
+and desktop icons. Provider credentials, conversations, settings, workspace
+history, and all other user data live under Electron's per-user application
+data directory and are never included in the executable. A copied executable
+therefore starts with the target computer's own clean user profile.
+
+## Implemented Snapshot
 
 **Status: rewrite in progress**
+
+The statements in this section describe the source code that exists now. The
+rest of the README is the product and engineering specification unless a
+section explicitly says that a feature is implemented.
+
+The current repository shape is:
+
+```text
+apps/
+  desktop/          Electron main process, preload, and React renderer
+```
+
+There is currently no `apps/cli`, `apps/daemon`, or `packages/` directory.
 
 The current Desktop implementation includes:
 
@@ -27,7 +50,7 @@ The current Desktop implementation includes:
 - OpenAI Responses, OpenAI-compatible Chat Completions, Anthropic Messages,
   and Google Gemini streaming adapters;
 - persistent conversations stored independently per workspace, without silent
-  history eviction;
+  history eviction, with per-message tool audit records;
 - incremental rolling-summary context compaction that preserves the original
   transcript and keeps recent turns verbatim;
 - a lazy, read-only current-workspace file tree that tracks external file
@@ -35,6 +58,14 @@ The current Desktop implementation includes:
 - source/rendered Markdown switching with GFM, safe embedded HTML, and KaTeX;
 - safe GFM, HTML, and KaTeX rendering for assistant responses, with deferred
   streaming updates;
+- user-authored global and project rules with resolved-order preview, bounded
+  model injection, and local Git exclusion for `.kv-code/`;
+- policy-controlled `workspace_list`, `workspace_read_file`, `git_status`,
+  `git_diff`, `workspace_write_file`, and `terminal_exec` tools for compatible
+  OpenAI-style chat providers;
+- Read-only, Auto, and YOLO tool policies, including Auto approval dialogs,
+  an explicit YOLO warning, and persisted tool-call status and parameter
+  summaries attached to the corresponding assistant message;
 - in-place sandboxed JSX/TSX interactive components and sanitized SVG output,
   each with source/preview switching;
 - sandboxed source/rendered HTML file previews with scripts and network access
@@ -44,8 +75,23 @@ The current Desktop implementation includes:
 - dark/light themes, English/Chinese localization, and nonlinear reasoning
   controls with reduced-motion support.
 
-The current code covers milestone steps 1-5 below. Terminal and Git boundaries
-remain the next incomplete parts of the trusted vertical slice.
+Current local persistence uses Electron user-data files, not SQLite. Provider
+secrets are protected with operating-system encryption. `terminal_exec` is a
+one-shot agent tool; it is not the planned interactive PTY terminal. Git access
+is currently limited to status and diff inspection, so staging, commits,
+branches, worktrees, and other Git mutations remain unimplemented.
+
+The following major capabilities remain planned rather than implemented:
+
+- the CLI and persistent runtime daemon;
+- the shared package architecture shown in the target repository shape;
+- SQLite persistence and migrations;
+- an interactive terminal surface backed by a PTY;
+- structured Git mutation tools;
+- an AI-controllable browser with text and visual context;
+- AI-authored global and project memory;
+- reusable skills and user-defined agents; and
+- swarm and multi-agent execution.
 
 The rewrite will use TypeScript across the application, including the backend.
 It will not retain the previous Rust runtime, app server, TUI, sidecar, crate
@@ -63,6 +109,10 @@ The first implementation milestone must prove a narrow but real vertical slice:
 8. Restart the application and recover the session.
 
 No decorative prototype will be accepted as a substitute for that slice.
+
+Everything below this point defines the intended product, architecture, and
+delivery requirements. It must not be interpreted as an inventory of the
+current repository. Use the Implemented Snapshot above for current facts.
 
 ## Product Mission
 
@@ -209,7 +259,7 @@ office artifacts is restricted to Work Mode. This permission boundary applies
 to future agent tools and cannot be bypassed by changing a control after a
 conversation has started. It does not restrict the user's read-only previews.
 
-## Technology Direction
+## Planned Technology Direction
 
 The intended foundation is:
 
@@ -232,7 +282,7 @@ matter more than benchmark novelty. Native dependencies may be used when they
 are mature and maintained, but KV Code should not introduce a custom Rust or C++
 backend unless a measured platform limitation makes it unavoidable.
 
-## Repository Shape
+## Target Repository Shape
 
 The initial monorepo should remain small and explicit:
 
@@ -260,7 +310,7 @@ packages/
 Packages should be added only when they own a durable boundary. A directory per
 minor helper is not architecture.
 
-## Process Architecture
+## Planned Process Architecture
 
 KV Code should use three explicit process roles.
 
@@ -311,7 +361,7 @@ The daemon owns durable agent behavior:
 The daemon communicates over a Windows named pipe or Unix domain socket. It must
 not expose an unauthenticated localhost HTTP control port.
 
-Desktop-specific browser actions are implemented through a validated bridge
+Desktop-specific browser actions must be implemented through a validated bridge
 between the daemon and Electron main process. CLI use must not load Electron.
 
 ## Information Architecture
@@ -963,7 +1013,7 @@ Security requirements include:
 - runtime validation on both sides of IPC;
 - secure credential storage;
 - per-tool permissions;
-- explicit project trust;
+- explicit project trust and Read-only/Auto/YOLO tool policy;
 - path canonicalization;
 - command and argument boundaries;
 - bounded data transfer;

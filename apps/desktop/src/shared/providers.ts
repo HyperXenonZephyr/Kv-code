@@ -48,6 +48,7 @@ export const chatStartRequestSchema = z
   .object({
     turnId: z.string().min(1).max(100),
     providerId: z.string().min(1).max(100),
+    workspace: z.string().max(4_096),
     mode: workspaceModeSchema,
     reasoning: reasoningEffortSchema,
     additionalInstructions: z.string().max(4_000),
@@ -85,6 +86,14 @@ export const chatEventSchema = z.discriminatedUnion("type", [
     type: z.literal("error"),
     turnId: z.string(),
     message: z.string(),
+  }),
+  z.object({
+    type: z.literal("tool"),
+    turnId: z.string(),
+    callId: z.string().max(200),
+    name: z.string().max(80),
+    status: z.enum(["started", "completed", "error"]),
+    detail: z.string().max(500).optional(),
   }),
 ]);
 

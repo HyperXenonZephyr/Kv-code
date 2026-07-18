@@ -10,6 +10,7 @@ import {
 import type {
   AppSettings,
   ReasoningEffort,
+  ToolPolicy,
   WorkspaceMode,
 } from "../../shared/settings";
 import type {
@@ -214,6 +215,7 @@ function DesktopShell({
               ultraIntro={ultraIntro}
               onModeChange={setMode}
               onReasoningChange={setReasoning}
+              onToolPolicyChange={(toolPolicy: ToolPolicy) => updateSettings({ toolPolicy })}
               onProviderChange={selectProvider}
               onChooseDirectory={chooseDirectory}
               onOpenSettings={() => {
@@ -233,6 +235,7 @@ function DesktopShell({
               onTestProvider={testProvider}
               onUpdate={updateSettings}
               onChooseDirectory={() => void chooseDirectory()}
+              workspace={workspace}
             />
           )}
         </div>

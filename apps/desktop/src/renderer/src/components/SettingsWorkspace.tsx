@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import {
   useMemo,
+  useEffect,
   useState,
   type ComponentType,
   type ReactNode,
@@ -41,6 +42,8 @@ import type {
 import { useI18n, type MessageKey } from "../i18n";
 import { ProviderSettings } from "./ProviderSettings";
 import { ReasoningControl } from "./ReasoningControl";
+import { desktop } from "../lib/desktop";
+import type { RulesSnapshot } from "../../../shared/rules";
 
 export type SettingsPage =
   | "general"
@@ -74,7 +77,7 @@ const navigation: SettingsNavItem[] = [
   { id: "language", label: "settings.language", icon: Languages, implemented: true },
   { id: "models", label: "settings.models", icon: Gauge, implemented: true },
   { id: "behavior", label: "settings.behavior", icon: ShieldCheck, implemented: true },
-  { id: "rules", label: "settings.rules", icon: FileText, implemented: false },
+  { id: "rules", label: "settings.rules", icon: FileText, implemented: true },
   { id: "memory", label: "settings.memory", icon: BrainCircuit, implemented: false },
   { id: "skills", label: "settings.skills", icon: Sparkles, implemented: false },
   { id: "permissions", label: "settings.permissions", icon: LockKeyhole, implemented: false },
@@ -88,8 +91,7 @@ const navigation: SettingsNavItem[] = [
   { id: "updates", label: "settings.updates", icon: Accessibility, implemented: false },
 ];
 
-const plannedCopy: Record<Exclude<SettingsPage, "general" | "appearance" | "language" | "models" | "behavior">, MessageKey> = {
-  rules: "settings.rulesPlan",
+const plannedCopy: Record<Exclude<SettingsPage, "general" | "appearance" | "language" | "models" | "behavior" | "rules">, MessageKey> = {
   memory: "settings.memoryPlan",
   skills: "settings.skillsPlan",
   permissions: "settings.permissionsPlan",
@@ -114,6 +116,7 @@ export function SettingsWorkspace({
   onTestProvider,
   onUpdate,
   onChooseDirectory,
+  workspace,
 }: {
   settings: AppSettings;
   saving: boolean;
@@ -125,11 +128,16 @@ export function SettingsWorkspace({
   onTestProvider(providerId: string): Promise<ProviderTestResult>;
   onUpdate(patch: Partial<AppSettings>): void;
   onChooseDirectory(): void;
+  workspace: string;
 }) {
   const { t } = useI18n();
   const [page, setPage] = useState<SettingsPage>(initialPage);
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<"global" | "project">("global");
+  useEffect(() => {
+    if (page !== "rules") setScope("global");
+  }, [page]);
+  const projectScopeEnabled = page === "rules" && Boolean(workspace);
   const filteredNavigation = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
     if (!normalizedQuery) return navigation;
@@ -165,8 +173,8 @@ export function SettingsWorkspace({
           </button>
           <button
             className={scope === "project" ? "active" : ""}
-            disabled
-            title={t("settings.projectPlanned")}
+            disabled={!projectScopeEnabled}
+            title={!projectScopeEnabled ? (page !== "rules" ? t("settings.projectPlanned") : t("settings.projectUnavailable")) : t("settings.project")}
             onClick={() => setScope("project")}
           >
             {t("settings.project")}
@@ -226,12 +234,104 @@ export function SettingsWorkspace({
               onUpdate={onUpdate}
             />
           )}
+          {page === "rules" && (
+            <RulesSettings workspace={workspace} scope={scope} />
+          )}
           {page in plannedCopy && (
             <PlannedSettings page={page as keyof typeof plannedCopy} />
           )}
         </main>
       </div>
     </section>
+  );
+}
+
+function RulesSettings({
+  workspace,
+  scope,
+}: {
+  workspace: string;
+  scope: "global" | "project";
+}) {
+  const { t } = useI18n();
+  const [snapshot, setSnapshot] = useState<RulesSnapshot | null>(null);
+  const [draft, setDraft] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const document = snapshot?.[scope];
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError("");
+    void desktop.readRules({ workspace })
+      .then((next) => {
+        if (!active) return;
+        setSnapshot(next);
+        setDraft(next[scope].content);
+      })
+      .catch((reason: unknown) => {
+        if (active) setError(reason instanceof Error ? reason.message : t("settings.rulesLoadFailed"));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, [scope, t, workspace]);
+
+  const save = async () => {
+    if (scope === "project" && !workspace) return;
+    setSaving(true);
+    setError("");
+    try {
+      const next = await desktop.saveRules({ workspace, scope, content: draft });
+      setSnapshot(next);
+      setDraft(next[scope].content);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : t("settings.rulesSaveFailed"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const status = document?.loadStatus ?? "missing";
+  return (
+    <>
+      <SectionHeader
+        eyebrow={t("settings.rulesEyebrow")}
+        title={scope === "global" ? t("settings.globalRulesTitle") : t("settings.projectRulesTitle")}
+        detail={scope === "global" ? t("settings.globalRulesDetail") : t("settings.projectRulesDetail")}
+      />
+      <SettingsGroup>
+        <div className="rules-path-row">
+          <FileText size={15} />
+          <code>{document?.path || t("settings.rulesUnavailable")}</code>
+          <span className={`rules-load-status ${status}`}>{status.toUpperCase()}</span>
+        </div>
+        <textarea
+          className="instructions-field rules-editor"
+          maxLength={16_000}
+          value={draft}
+          disabled={loading || (scope === "project" && !workspace)}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder={t("settings.rulesPlaceholder")}
+          spellCheck={false}
+        />
+        <div className="rules-editor-footer">
+          <small>{draft.length.toLocaleString()} / 16,000</small>
+          <button className="settings-primary-action" disabled={loading || saving || (scope === "project" && !workspace)} onClick={() => void save()}>
+            {saving ? t("settings.rulesSaving") : t("settings.rulesSave")}
+          </button>
+        </div>
+      </SettingsGroup>
+      {error && <div className="settings-error">{error}</div>}
+      <section className="rules-preview-panel">
+        <header><strong>{t("settings.rulesResolvedTitle")}</strong><span>{t("settings.rulesOrder")}</span></header>
+        <pre>{snapshot?.resolvedContent || t("settings.rulesEmpty")}</pre>
+      </section>
+      <p className="rules-note">{t("settings.rulesGitNote")}</p>
+    </>
   );
 }
 

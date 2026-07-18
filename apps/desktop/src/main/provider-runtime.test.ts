@@ -1,4 +1,7 @@
 import { createServer, type Server } from "node:http";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { ProviderConfig } from "../shared/providers";
 import {
@@ -8,6 +11,7 @@ import {
 } from "./provider-runtime";
 
 let server: Server | null = null;
+let toolWorkspace = "";
 
 afterEach(async () => {
   if (!server) return;
@@ -15,6 +19,8 @@ afterEach(async () => {
     server?.close((error) => error ? reject(error) : resolve());
   });
   server = null;
+  if (toolWorkspace) await rm(toolWorkspace, { recursive: true, force: true });
+  toolWorkspace = "";
 });
 
 describe("provider runtime", () => {
@@ -125,6 +131,62 @@ describe("provider runtime", () => {
 
     expect(requestedPaths).toEqual(["/v1/responses", "/v1/chat/completions"]);
     expect(deltas).toEqual(["fallback"]);
+  });
+
+  it("executes bounded read-only tools and continues the chat loop", async () => {
+    toolWorkspace = await mkdtemp(join(tmpdir(), "kv-code-provider-tools-"));
+    await writeFile(join(toolWorkspace, "main.ts"), "export const answer = 42;\n", "utf8");
+    const requestBodies: any[] = [];
+    let requestCount = 0;
+    server = createServer((request, response) => {
+      let body = "";
+      request.setEncoding("utf8");
+      request.on("data", (chunk) => { body += chunk; });
+      request.on("end", () => {
+        requestBodies.push(JSON.parse(body));
+        requestCount += 1;
+        response.writeHead(200, { "content-type": "text/event-stream" });
+        if (requestCount === 1) {
+          response.end([
+            'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"workspace_read_file","arguments":"{\\"path\\":\\"main.ts\\"}"}}]}}]}',
+            'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}',
+            "data: [DONE]",
+            "",
+          ].join("\n\n"));
+        } else {
+          response.end('data: {"choices":[{"delta":{"content":"Verified"}}]}\n\ndata: [DONE]\n\n');
+        }
+      });
+    });
+    await new Promise<void>((resolve) => server?.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("Missing test address");
+
+    const deltas: string[] = [];
+    await streamProviderResponse({
+      provider: {
+        id: "tools-test",
+        name: "Tools test",
+        protocol: "openai-chat",
+        baseUrl: `http://127.0.0.1:${address.port}/v1`,
+        model: "test-model",
+      },
+      apiKey: "",
+      systemPrompt: "SYSTEM PROMPT",
+      reasoning: "high",
+      messages: [{ role: "user", content: "Inspect the file." }],
+      signal: new AbortController().signal,
+      onDelta: (text) => deltas.push(text),
+      tools: { workspace: toolWorkspace, mode: "code", policy: "read-only", signal: new AbortController().signal },
+    });
+
+    expect(deltas.join("")).toBe("Verified");
+    expect(requestBodies[0].tools).toEqual(expect.arrayContaining([
+      expect.objectContaining({ function: expect.objectContaining({ name: "workspace_read_file" }) }),
+    ]));
+    expect(requestBodies[1].messages).toEqual(expect.arrayContaining([
+      expect.objectContaining({ role: "tool", tool_call_id: "call_1", content: expect.stringContaining("answer") }),
+    ]));
   });
 
   it("updates a rolling context summary without exposing tools", async () => {

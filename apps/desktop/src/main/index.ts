@@ -32,11 +32,18 @@ import { ConversationStore } from "./conversation-store";
 import { listWorkspaceDirectory, readWorkspaceFile } from "./workspace-files";
 import { workspaceRelativePathSchema } from "../shared/workspace-files";
 import { watchWorkspace } from "./workspace-watcher";
+import { RulesStore } from "./rules-store";
+import type { ToolApprovalRequest } from "./tool-runtime";
+import {
+  rulesReadRequestSchema,
+  rulesSaveRequestSchema,
+} from "../shared/rules";
 
 let mainWindow: BrowserWindow | null = null;
 let settingsStore: SettingsStore;
 let providerStore: ProviderStore;
 let conversationStore: ConversationStore;
+let rulesStore: RulesStore;
 let ultraPulseGeneration = 0;
 const activeTurns = new Map<string, AbortController>();
 const workspaceWatchers = new Map<number, () => void>();
@@ -55,6 +62,9 @@ protocol.registerSchemesAsPrivileged([{
 }]);
 
 function createWindow(): BrowserWindow {
+  const resourceDirectory = app.isPackaged
+    ? join(process.resourcesPath, "resources")
+    : join(__dirname, "../../resources");
   const window = new BrowserWindow({
     width: 1440,
     height: 920,
@@ -64,10 +74,10 @@ function createWindow(): BrowserWindow {
     frame: false,
     backgroundColor: "#090b0d",
     icon: join(
-      __dirname,
+      resourceDirectory,
       process.platform === "win32"
-        ? "../../resources/desktop-logo.ico"
-        : "../../resources/desktop-logo.png",
+        ? "desktop-logo.ico"
+        : "desktop-logo.png",
     ),
     title: "KV Code",
     webPreferences: {
@@ -98,6 +108,20 @@ function registerIpc(): void {
   ipcMain.handle("settings:read", () => settingsStore.read());
   ipcMain.handle("settings:update", async (_event, patch: Partial<AppSettings>) => {
     const validatedPatch = appSettingsSchema.partial().parse(patch);
+    if (validatedPatch.toolPolicy === "yolo" && settingsStore.read().toolPolicy !== "yolo") {
+      const result = mainWindow
+        ? await dialog.showMessageBox(mainWindow, {
+            type: "warning",
+            title: "Enable YOLO tool policy?",
+            message: "YOLO lets model tools access sensitive paths and execute commands without approval.",
+            detail: "Only enable this for a workspace and provider you fully trust. You can switch back in Settings.",
+            buttons: ["Enable YOLO", "Cancel"],
+            defaultId: 1,
+            cancelId: 1,
+          })
+        : { response: 1 };
+      if (result.response !== 0) return settingsStore.read();
+    }
     const settings = await settingsStore.update(validatedPatch);
     nativeTheme.themeSource = settings.theme;
     return settings;
@@ -115,12 +139,23 @@ function registerIpc(): void {
   });
   ipcMain.handle(
     "chat:start",
-    (event, rawRequest: ChatStartRequest): { turnId: string } => {
+    async (event, rawRequest: ChatStartRequest): Promise<{ turnId: string }> => {
       const request = chatStartRequestSchema.parse(rawRequest);
       if (activeTurns.has(request.turnId)) throw new Error("Turn is already active.");
       const provider = providerStore.get(request.providerId);
       const apiKey = providerStore.apiKey(request.providerId);
       const controller = new AbortController();
+      const rules = await rulesStore.read(request.workspace);
+      const toolPolicy = settingsStore.read().toolPolicy;
+      const tools = provider.protocol === "openai-chat" || provider.protocol === "openai-responses"
+        ? {
+            workspace: request.workspace,
+            mode: request.mode,
+            policy: toolPolicy,
+            signal: controller.signal,
+            requestApproval: (approval: ToolApprovalRequest) => requestToolApproval(approval),
+          }
+        : undefined;
       activeTurns.set(request.turnId, controller);
 
       const send = (chatEvent: ChatEvent): void => {
@@ -134,10 +169,15 @@ function registerIpc(): void {
           request.mode,
           request.reasoning,
           request.additionalInstructions,
+          rules.resolvedContent,
+          Boolean(tools),
+          toolPolicy,
         ),
         messages: request.messages,
+        tools,
         signal: controller.signal,
         onDelta: (text) => send({ type: "delta", turnId: request.turnId, text }),
+        onToolEvent: (toolEvent) => send({ type: "tool", turnId: request.turnId, ...toolEvent }),
       })
         .then(() => send({ type: "done", turnId: request.turnId }))
         .catch((error: unknown) => {
@@ -198,6 +238,14 @@ function registerIpc(): void {
       );
     },
   );
+  ipcMain.handle("rules:read", (_event, rawRequest: unknown) => {
+    const request = rulesReadRequestSchema.parse(rawRequest);
+    return rulesStore.read(request.workspace);
+  });
+  ipcMain.handle("rules:save", (_event, rawRequest: unknown) => {
+    const request = rulesSaveRequestSchema.parse(rawRequest);
+    return rulesStore.save(request);
+  });
   ipcMain.handle(
     "workspace:list",
     (_event, workspace: string, path: string) =>
@@ -331,6 +379,25 @@ function stopWorkspaceWatcher(senderId: number): void {
   workspaceWatchers.delete(senderId);
 }
 
+async function requestToolApproval(approval: ToolApprovalRequest): Promise<boolean> {
+  if (!mainWindow || mainWindow.isDestroyed()) return false;
+  const result = await dialog.showMessageBox(mainWindow, {
+    type: "warning",
+    title: "KV Code tool approval",
+    message: approval.kind === "terminal"
+      ? "The model wants to execute a terminal command."
+      : approval.kind === "write-file"
+        ? "The model wants to write a workspace file."
+        : "The model wants to access a sensitive or external path.",
+    detail: approval.summary,
+    buttons: ["Allow once", "Deny"],
+    defaultId: 1,
+    cancelId: 1,
+    noLink: true,
+  });
+  return result.response === 0;
+}
+
 function pulseUltraWindow(window: BrowserWindow): boolean {
   if (window.isDestroyed() || window.isMaximized() || window.isFullScreen()) {
     return false;
@@ -371,9 +438,11 @@ void app.whenReady().then(async () => {
   settingsStore = new SettingsStore();
   providerStore = new ProviderStore();
   conversationStore = new ConversationStore();
+  rulesStore = new RulesStore();
   const settings = await settingsStore.load();
   await providerStore.load();
   await conversationStore.load();
+  await rulesStore.load();
   nativeTheme.themeSource = settings.theme;
   registerInlineProtocol();
   registerIpc();

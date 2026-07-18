@@ -4,6 +4,12 @@ import type {
   ProviderTestResult,
 } from "../shared/providers";
 import type { ReasoningEffort } from "../shared/settings";
+import {
+  executeBasicTool,
+  toolDefinitionsForPolicy,
+  toolPolicyLimits,
+  type ToolContext,
+} from "./tool-runtime";
 
 interface StreamRequest {
   provider: ProviderConfig;
@@ -13,6 +19,13 @@ interface StreamRequest {
   messages: ChatMessage[];
   signal: AbortSignal;
   onDelta(text: string): void;
+  onToolEvent?(event: {
+    callId: string;
+    name: string;
+    status: "started" | "completed" | "error";
+    detail?: string;
+  }): void;
+  tools?: ToolContext;
 }
 
 const COMPACTION_PROMPT = `Compress earlier conversation history into a durable factual summary for another assistant continuing the same task.
@@ -50,7 +63,7 @@ export async function testProviderConnection(
 export async function streamProviderResponse(request: StreamRequest): Promise<void> {
   switch (request.provider.protocol) {
     case "openai-responses":
-      return streamOpenAiResponses(request);
+      return request.tools ? streamOpenAiChat(request) : streamOpenAiResponses(request);
     case "openai-chat":
       return streamOpenAiChat(request);
     case "anthropic":
@@ -135,21 +148,102 @@ async function streamOpenAiResponses(request: StreamRequest): Promise<void> {
 }
 
 async function streamOpenAiChat(request: StreamRequest): Promise<void> {
-  const response = await providerFetch(request, "chat/completions", {
-    model: request.provider.model,
-    messages: [
-      { role: "system", content: request.systemPrompt },
-      ...request.messages,
-    ],
-    stream: true,
-  });
-  await readSse(response, (data) => {
-    if (data === "[DONE]") return;
-    const event = parseJson(data);
-    const text = event?.choices?.[0]?.delta?.content;
-    if (typeof text === "string") request.onDelta(text);
-  });
+  const messages: OpenAiChatMessage[] = [
+    { role: "system", content: request.systemPrompt },
+    ...request.messages,
+  ];
+  for (let round = 0; round <= (request.tools ? toolPolicyLimits(request.tools.policy).maxRounds : 0); round += 1) {
+    const response = await providerFetch(request, "chat/completions", {
+      model: request.provider.model,
+      messages,
+      stream: true,
+      ...(request.tools ? { tools: toolDefinitionsForPolicy(request.tools.policy), tool_choice: "auto" } : {}),
+    });
+    const toolCalls = new Map<number, PendingToolCall>();
+    let hasToolCall = false;
+    let assistantText = "";
+    await readSse(response, (data) => {
+      if (data === "[DONE]") return;
+      const event = parseJson(data);
+      const delta = event?.choices?.[0]?.delta;
+      const text = delta?.content;
+      if (typeof text === "string") {
+        assistantText += text;
+        request.onDelta(text);
+      }
+      if (!Array.isArray(delta?.tool_calls)) return;
+      hasToolCall = true;
+      for (const chunk of delta.tool_calls) {
+        if (typeof chunk?.index !== "number") continue;
+        const current = toolCalls.get(chunk.index) ?? { id: "", name: "", arguments: "" };
+        if (typeof chunk.id === "string") current.id += chunk.id;
+        if (typeof chunk.function?.name === "string") current.name += chunk.function.name;
+        if (typeof chunk.function?.arguments === "string") current.arguments += chunk.function.arguments;
+        toolCalls.set(chunk.index, current);
+      }
+    });
+    if (!hasToolCall) return;
+    if (!request.tools) throw new Error("The provider requested a tool without a tool context.");
+    if (request.tools && round === toolPolicyLimits(request.tools.policy).maxRounds) {
+      throw new Error(`The provider exceeded the ${request.tools.policy} tool-round limit.`);
+    }
+
+    const calls = [...toolCalls.values()].filter((call) => call.id && call.name);
+    if (!calls.length) throw new Error("The provider returned an incomplete tool call.");
+    messages.push({
+      role: "assistant",
+      content: assistantText || null,
+      tool_calls: calls.map((call) => ({
+        id: call.id,
+        type: "function",
+        function: { name: call.name, arguments: call.arguments },
+      })),
+    });
+    for (const call of calls) {
+      request.onToolEvent?.({ callId: call.id, name: call.name, status: "started", detail: toolCallSummary(call) });
+      let result: string;
+      try {
+        result = await executeBasicTool(call, request.tools);
+        request.onToolEvent?.({ callId: call.id, name: call.name, status: "completed" });
+      } catch (error) {
+        result = JSON.stringify({ error: error instanceof Error ? error.message : "Tool execution failed." });
+        request.onToolEvent?.({
+          callId: call.id,
+          name: call.name,
+          status: "error",
+          detail: error instanceof Error ? error.message.slice(0, 500) : "Tool execution failed.",
+        });
+      }
+      messages.push({ role: "tool", tool_call_id: call.id, content: result });
+    }
+  }
 }
+
+interface PendingToolCall {
+  id: string;
+  name: string;
+  arguments: string;
+}
+
+function toolCallSummary(call: PendingToolCall): string | undefined {
+  try {
+    const args = JSON.parse(call.arguments || "{}");
+    if (typeof args?.path === "string") {
+      const path = args.path.replaceAll("\\", "/");
+      if (/(^|\/)(?:\.env(?:\.|$)|.*(?:secret|credential)|id_rsa)(?:\/|$)/i.test(path)) return "sensitive path";
+      return path || "workspace root";
+    }
+    if (typeof args?.command === "string") return args.command.slice(0, 240);
+    if (args?.staged === true) return "staged diff";
+  } catch {
+    return "arguments unavailable";
+  }
+  return undefined;
+}
+
+type OpenAiChatMessage =
+  | { role: "system" | "user" | "assistant"; content: string | null; tool_calls?: Array<{ id: string; type: "function"; function: { name: string; arguments: string } }> }
+  | { role: "tool"; tool_call_id: string; content: string };
 
 async function streamAnthropic(request: StreamRequest): Promise<void> {
   const response = await providerFetch(request, "messages", {

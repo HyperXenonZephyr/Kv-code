@@ -9,6 +9,7 @@
     "dev": "pnpm --filter @kv-code/desktop dev",
     "check": "pnpm --filter @kv-code/desktop check",
     "test": "pnpm --filter @kv-code/desktop test",
-    "build": "pnpm --filter @kv-code/desktop build"
+    "build": "pnpm --filter @kv-code/desktop build",
+    "package:win": "pnpm --filter @kv-code/desktop package:win"
   }
 }

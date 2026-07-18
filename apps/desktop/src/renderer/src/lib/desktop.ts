@@ -15,10 +15,18 @@ import {
   type Conversation,
   type ConversationSummary,
 } from "../../../shared/conversations";
+import {
+  rulesSaveRequestSchema,
+  rulesSnapshotSchema,
+  type RulesReadRequest,
+  type RulesSaveRequest,
+  type RulesSnapshot,
+} from "../../../shared/rules";
 
 const PREVIEW_SETTINGS_KEY = "kv-code-preview-settings";
 const PREVIEW_PROVIDERS_KEY = "kv-code-preview-providers";
 const PREVIEW_CONVERSATIONS_KEY = "kv-code-preview-conversations";
+const PREVIEW_RULES_KEY = "kv-code-preview-rules";
 const previewChatListeners = new Set<(event: ChatEvent) => void>();
 
 function readPreviewProviders(): ProviderSummary[] {
@@ -34,6 +42,16 @@ function readPreviewConversations(): Conversation[] {
   try {
     return conversationSchema.array().parse(
       JSON.parse(localStorage.getItem(PREVIEW_CONVERSATIONS_KEY) ?? "[]"),
+    );
+  } catch {
+    return [];
+  }
+}
+
+function readPreviewRules(): RulesSaveRequest[] {
+  try {
+    return rulesSaveRequestSchema.array().parse(
+      JSON.parse(localStorage.getItem(PREVIEW_RULES_KEY) ?? "[]"),
     );
   } catch {
     return [];
@@ -150,6 +168,25 @@ const previewApi: KvDesktopApi = {
   async compactConversation() {
     throw new Error("Context compaction requires the Electron desktop runtime.");
   },
+  async readRules(request: RulesReadRequest) {
+    const rules = readPreviewRules();
+    const global = rules.find((rule) => rule.scope === "global");
+    const project = rules.find((rule) => rule.scope === "project" && rule.workspace === request.workspace);
+    return rulesSnapshotSchema.parse({
+      global: previewRuleDocument("global", global?.content ?? "", "preview/global.md"),
+      project: previewRuleDocument("project", project?.content ?? "", "preview/project/rules.md"),
+      resolvedContent: previewResolvedRules(global?.content ?? "", project?.content ?? ""),
+    });
+  },
+  async saveRules(rawRequest: RulesSaveRequest) {
+    const request = rulesSaveRequestSchema.parse(rawRequest);
+    const current = readPreviewRules().filter((rule) =>
+      !(rule.scope === request.scope && (request.scope === "global" || rule.workspace === request.workspace)),
+    );
+    if (request.content.trim()) current.unshift(request);
+    localStorage.setItem(PREVIEW_RULES_KEY, JSON.stringify(current));
+    return this.readRules(request);
+  },
   async listWorkspaceDirectory() {
     return [];
   },
@@ -185,6 +222,28 @@ const previewApi: KvDesktopApi = {
   },
   async closeWindow() {},
 };
+
+function previewRuleDocument(
+  scope: "global" | "project",
+  content: string,
+  path: string,
+) {
+  return {
+    scope,
+    path,
+    content,
+    exists: Boolean(content.trim()),
+    updatedAt: content ? Date.now() : null,
+    loadStatus: content ? "loaded" : "missing",
+  } as const;
+}
+
+function previewResolvedRules(global: string, project: string): string {
+  return [
+    global.trim() ? `<global_rules source="preview/global.md">\n${global.trim()}\n</global_rules>` : "",
+    project.trim() ? `<project_rules source="preview/project/rules.md">\n${project.trim()}\n</project_rules>` : "",
+  ].filter(Boolean).join("\n\n");
+}
 
 export const desktop: KvDesktopApi = window.kv ?? previewApi;
 export const isDesktop = Boolean(window.kv);

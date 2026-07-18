@@ -17,6 +17,7 @@ import type {
   WorkspaceEntry,
   WorkspaceFile,
 } from "../shared/workspace-files";
+import type { RulesReadRequest, RulesSaveRequest, RulesSnapshot } from "../shared/rules";
 
 const api: KvDesktopApi = {
   readSettings: () => ipcRenderer.invoke("settings:read") as Promise<AppSettings>,
@@ -50,6 +51,10 @@ const api: KvDesktopApi = {
     ipcRenderer.invoke("conversations:remove", workspace, conversationId) as Promise<ConversationSummary[]>,
   compactConversation: (request: ConversationCompactionRequest) =>
     ipcRenderer.invoke("conversations:compact", request) as Promise<string>,
+  readRules: (request: RulesReadRequest) =>
+    ipcRenderer.invoke("rules:read", request) as Promise<RulesSnapshot>,
+  saveRules: (request: RulesSaveRequest) =>
+    ipcRenderer.invoke("rules:save", request) as Promise<RulesSnapshot>,
   listWorkspaceDirectory: (workspace: string, path: string) =>
     ipcRenderer.invoke("workspace:list", workspace, path) as Promise<WorkspaceEntry[]>,
   readWorkspaceFile: (workspace: string, path: string) =>

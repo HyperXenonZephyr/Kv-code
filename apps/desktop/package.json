@@ -10,7 +10,8 @@
     "dev": "electron-vite dev",
     "check": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "vitest run",
-    "build": "pnpm check && electron-vite build"
+    "build": "pnpm check && electron-vite build",
+    "package:win": "pnpm build && electron-builder --win portable --x64"
   },
   "dependencies": {
     "@aiden0z/pptx-renderer": "^1.2.4",
@@ -36,9 +37,49 @@
     "@types/react-dom": "^19.0.2",
     "@vitejs/plugin-react": "^4.3.4",
     "electron": "^34.0.0",
+    "electron-builder": "26.0.12",
     "electron-vite": "^3.0.0",
     "typescript": "^5.7.2",
     "vite": "^6.0.7",
     "vitest": "^3.2.4"
+  },
+  "build": {
+    "appId": "dev.kvcode.desktop",
+    "productName": "KV Code",
+    "asar": true,
+    "compression": "maximum",
+    "artifactName": "KV-Code-${version}-win-${arch}-portable.${ext}",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**/*",
+      "package.json",
+      "!**/*.map"
+    ],
+    "extraResources": [
+      {
+        "from": "resources",
+        "to": "resources",
+        "filter": [
+          "desktop-logo.ico",
+          "desktop-logo.png"
+        ]
+      }
+    ],
+    "win": {
+      "icon": "resources/desktop-logo.ico",
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "requestExecutionLevel": "user"
+    }
   }
 }

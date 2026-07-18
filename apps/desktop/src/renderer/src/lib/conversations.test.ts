@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Conversation, ConversationMessage } from "../../../shared/conversations";
-import { modelContext, nextCompactionChunk } from "./conversations";
+import { modelContext, nextCompactionChunk, storableMessages } from "./conversations";
 
 function message(index: number, state: ConversationMessage["state"] = "complete") {
   return {
@@ -55,6 +55,30 @@ describe("conversation context", () => {
         content: "Summary of earlier conversation history:\n<conversation_summary>\nEarlier decisions\n</conversation_summary>",
       },
       { role: "assistant", content: "message 3" },
+    ]);
+  });
+
+  it("persists tool audit metadata without adding it to model context", () => {
+    const stored = storableMessages([{
+      id: "assistant_audit",
+      role: "assistant",
+      content: "Final answer",
+      state: "complete",
+      toolProgress: ["I will inspect the file."],
+      toolEvents: [{
+        callId: "call_1",
+        name: "workspace_read_file",
+        status: "completed",
+        detail: "README.md",
+      }],
+    }]);
+
+    expect(stored[0]?.toolProgress).toEqual(["I will inspect the file."]);
+    expect(stored[0]?.toolEvents).toEqual([
+      expect.objectContaining({ name: "workspace_read_file", status: "completed" }),
+    ]);
+    expect(modelContext(conversation(stored))).toEqual([
+      { role: "assistant", content: "Final answer" },
     ]);
   });
 });
