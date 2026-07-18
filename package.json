@@ -1,0 +1,14 @@
+{
+  "name": "kv-code",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A local-first AI workbench for developers and technical knowledge workers.",
+  "license": "MIT",
+  "packageManager": "pnpm@11.9.0",
+  "scripts": {
+    "dev": "pnpm --filter @kv-code/desktop dev",
+    "check": "pnpm --filter @kv-code/desktop check",
+    "test": "pnpm --filter @kv-code/desktop test",
+    "build": "pnpm --filter @kv-code/desktop build"
+  }
+}
