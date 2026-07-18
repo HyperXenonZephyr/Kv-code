@@ -9,6 +9,12 @@ export const conversationToolActivitySchema = z.object({
   name: z.string().max(80),
   status: z.enum(["started", "completed", "error"]),
   detail: z.string().max(500).optional(),
+  arguments: z.string().max(16_000).optional(),
+  output: z.string().max(16_000).optional(),
+  startedAt: z.number().int().nonnegative().optional(),
+  durationMs: z.number().int().nonnegative().optional(),
+  exitCode: z.number().int().optional(),
+  changedFiles: z.array(z.string().max(4_096)).max(200).optional(),
 });
 
 export const conversationMessageSchema = z.object({

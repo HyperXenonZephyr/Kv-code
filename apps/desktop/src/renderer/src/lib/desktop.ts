@@ -202,6 +202,21 @@ const previewApi: KvDesktopApi = {
   onWorkspaceChanged() {
     return () => {};
   },
+  async listTerminals() {
+    return [];
+  },
+  async createTerminal() {
+    throw new Error("Integrated terminals require the Electron desktop runtime.");
+  },
+  async writeTerminal() {},
+  async resizeTerminal() {},
+  async readTerminal() {
+    throw new Error("Integrated terminals require the Electron desktop runtime.");
+  },
+  async closeTerminal() {},
+  onTerminalEvent() {
+    return () => {};
+  },
   async chooseDirectory() {
     return null;
   },

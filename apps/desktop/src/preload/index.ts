@@ -18,6 +18,14 @@ import type {
   WorkspaceFile,
 } from "../shared/workspace-files";
 import type { RulesReadRequest, RulesSaveRequest, RulesSnapshot } from "../shared/rules";
+import type {
+  TerminalCreateRequest,
+  TerminalEvent,
+  TerminalReadRequest,
+  TerminalResizeRequest,
+  TerminalSession,
+  TerminalWriteRequest,
+} from "../shared/terminal";
 
 const api: KvDesktopApi = {
   readSettings: () => ipcRenderer.invoke("settings:read") as Promise<AppSettings>,
@@ -72,6 +80,23 @@ const api: KvDesktopApi = {
       listener(change);
     ipcRenderer.on("workspace:changed", handler);
     return () => ipcRenderer.removeListener("workspace:changed", handler);
+  },
+  listTerminals: (workspace: string) =>
+    ipcRenderer.invoke("terminal:list", workspace) as Promise<TerminalSession[]>,
+  createTerminal: (request: TerminalCreateRequest) =>
+    ipcRenderer.invoke("terminal:create", request) as Promise<TerminalSession>,
+  writeTerminal: (request: TerminalWriteRequest) =>
+    ipcRenderer.invoke("terminal:write", request) as Promise<void>,
+  resizeTerminal: (request: TerminalResizeRequest) =>
+    ipcRenderer.invoke("terminal:resize", request) as Promise<void>,
+  readTerminal: (request: TerminalReadRequest) =>
+    ipcRenderer.invoke("terminal:read", request) as Promise<{ id: string; output: string; truncated: boolean; running: boolean }>,
+  closeTerminal: (terminalId: string) =>
+    ipcRenderer.invoke("terminal:close", terminalId) as Promise<void>,
+  onTerminalEvent: (listener: (event: TerminalEvent) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, terminalEvent: TerminalEvent) => listener(terminalEvent);
+    ipcRenderer.on("terminal:event", handler);
+    return () => ipcRenderer.removeListener("terminal:event", handler);
   },
   chooseDirectory: () =>
     ipcRenderer.invoke("system:choose-directory") as Promise<string | null>,

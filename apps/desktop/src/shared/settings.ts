@@ -21,6 +21,14 @@ import type {
   RulesSaveRequest,
   RulesSnapshot,
 } from "./rules";
+import type {
+  TerminalCreateRequest,
+  TerminalEvent,
+  TerminalReadRequest,
+  TerminalResizeRequest,
+  TerminalSession,
+  TerminalWriteRequest,
+} from "./terminal";
 
 export const themeModeSchema = z.enum(["system", "dark", "light"]);
 export const localeSchema = z.enum(["en", "zh-CN"]);
@@ -106,6 +114,13 @@ export interface KvDesktopApi {
   watchWorkspace(workspace: string): Promise<void>;
   unwatchWorkspace(): Promise<void>;
   onWorkspaceChanged(listener: (change: WorkspaceChange) => void): () => void;
+  listTerminals(workspace: string): Promise<TerminalSession[]>;
+  createTerminal(request: TerminalCreateRequest): Promise<TerminalSession>;
+  writeTerminal(request: TerminalWriteRequest): Promise<void>;
+  resizeTerminal(request: TerminalResizeRequest): Promise<void>;
+  readTerminal(request: TerminalReadRequest): Promise<{ id: string; output: string; truncated: boolean; running: boolean }>;
+  closeTerminal(terminalId: string): Promise<void>;
+  onTerminalEvent(listener: (event: TerminalEvent) => void): () => void;
   chooseDirectory(): Promise<string | null>;
   systemInfo(): Promise<SystemInfo>;
   minimizeWindow(): Promise<void>;

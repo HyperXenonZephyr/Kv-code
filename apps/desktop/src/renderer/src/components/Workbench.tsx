@@ -1,7 +1,9 @@
 import {
+  Activity,
   Bot,
   Box,
   ChevronRight,
+  ChevronDown,
   Code2,
   FolderGit2,
   FolderTree,
@@ -52,6 +54,7 @@ import { WorkspaceTree } from "./WorkspaceTree";
 import { DocumentViewer } from "./DocumentViewer";
 
 const MarkdownContent = lazy(() => import("./MarkdownContent"));
+const TerminalPanel = lazy(() => import("./TerminalPanel"));
 
 export function Workbench({
   mode,
@@ -94,6 +97,7 @@ export function Workbench({
   const [activeDocument, setActiveDocument] = useState<WorkspaceEntry | null>(null);
   const [workspaceRevision, setWorkspaceRevision] = useState(0);
   const [documentRevision, setDocumentRevision] = useState(0);
+  const [terminalOpen, setTerminalOpen] = useState(false);
   const activeAssistantId = useRef<string | null>(null);
   const activeAssistantText = useRef("");
   const activeTurnIdRef = useRef<string | null>(null);
@@ -101,7 +105,7 @@ export function Workbench({
   const activeDocumentRef = useRef<WorkspaceEntry | null>(null);
   const transcript = useRef<HTMLDivElement | null>(null);
   const activeProvider = providers.find((provider) => provider.id === activeProviderId);
-  const basicToolsEnabled = Boolean(activeProvider && (activeProvider.protocol === "openai-chat" || activeProvider.protocol === "openai-responses"));
+  const basicToolsEnabled = Boolean(activeProvider);
   const workspaceName = workspace.split(/[\\/]/).filter(Boolean).at(-1);
   const contextCharacters = useMemo(
     () => messages.reduce((total, message) => total + message.content.length, 0),
@@ -524,12 +528,23 @@ export function Workbench({
               ))}
             </select>
           </label>
+          <button
+            className={`terminal-toggle${terminalOpen ? " active" : ""}`}
+            title={t("terminal.toggle")}
+            aria-pressed={terminalOpen}
+            onClick={() => setTerminalOpen((open) => !open)}
+          >
+            <SquareTerminal size={14} />
+            <span>{t("terminal.title")}</span>
+          </button>
           <span className="standby-indicator">
             <i /> {compacting ? t("workbench.compacting") : activeTurnId ? "STREAMING" : t("workbench.standby")}
           </span>
         </header>
 
-        {activeDocument ? (
+        <div className={`conversation-stage${terminalOpen ? " terminal-open" : ""}`}>
+          <div className="conversation-surface">
+          {activeDocument ? (
           <DocumentViewer
             entry={activeDocument}
             revision={documentRevision}
@@ -545,11 +560,11 @@ export function Workbench({
                   <strong>{message.role === "user" ? "YOU" : activeProvider?.name.toUpperCase()}</strong>
                   <span>{message.state.toUpperCase()}</span>
                 </header>
-                {message.role === "assistant" && Boolean(message.toolProgress?.length) && (
-                  <ToolProgress items={message.toolProgress ?? []} />
-                )}
-                {message.role === "assistant" && Boolean(message.toolEvents?.length) && (
-                  <ToolTrace events={message.toolEvents ?? []} />
+                {message.role === "assistant" && Boolean(message.toolProgress?.length || message.toolEvents?.length) && (
+                  <WorkProcess
+                    progress={message.toolProgress ?? []}
+                    events={message.toolEvents ?? []}
+                  />
                 )}
                 {message.role === "assistant" && message.content ? (
                   <AssistantMarkdown content={message.content} />
@@ -580,7 +595,14 @@ export function Workbench({
               </button>
             )}
           </div>
-        )}
+          )}
+          </div>
+          {terminalOpen && (
+            <Suspense fallback={<div className="terminal-panel-loading">STARTING PTY</div>}>
+              <TerminalPanel workspace={workspace} onClose={() => setTerminalOpen(false)} />
+            </Suspense>
+          )}
+        </div>
 
         <div className="composer-zone">
           <ToolPolicyControl
@@ -653,39 +675,87 @@ export function Workbench({
   );
 }
 
-function ToolProgress({ items }: { items: string[] }) {
+function WorkProcess({
+  progress,
+  events,
+}: {
+  progress: string[];
+  events: ConversationToolActivity[];
+}) {
+  const { t } = useI18n();
+  const [expanded, setExpanded] = useState(true);
+  const running = events.some((event) => event.status === "started");
+  const failed = events.some((event) => event.status === "error");
   return (
-    <div className="tool-progress" aria-label="Model progress">
-      {items.map((item, index) => (
-        <div className="tool-progress-item" key={`${index}-${item.slice(0, 24)}`}>
-          <Bot size={13} aria-hidden="true" />
-          <div>{item}</div>
-        </div>
-      ))}
-    </div>
+    <details
+      className={`work-process${running ? " running" : failed ? " failed" : ""}`}
+      open={expanded}
+      onToggle={(event) => setExpanded(event.currentTarget.open)}
+    >
+      <summary>
+        <Activity size={14} aria-hidden="true" />
+        <strong>{t("tools.workProcess")}</strong>
+        <span>{progress.length + events.length} {t("tools.steps")}</span>
+        <em>{running ? t("tools.statusStarted") : failed ? t("tools.statusError") : t("tools.statusCompleted")}</em>
+        <ChevronDown size={14} aria-hidden="true" />
+      </summary>
+      <div className="work-process-body" aria-live="polite">
+        {progress.map((item, index) => (
+          <div className="work-progress-row" key={`${index}-${item.slice(0, 24)}`}>
+            <Bot size={13} aria-hidden="true" />
+            <p>{item}</p>
+          </div>
+        ))}
+        {events.map((event) => <ToolCallCard event={event} key={event.callId} />)}
+      </div>
+    </details>
   );
 }
 
-function ToolTrace({ events }: { events: ConversationToolActivity[] }) {
+function ToolCallCard({ event }: { event: ConversationToolActivity }) {
   const { t } = useI18n();
+  const status = event.status === "started"
+    ? t("tools.statusStarted")
+    : event.status === "completed"
+      ? t("tools.statusCompleted")
+      : t("tools.statusError");
+  const isDiff = event.name === "workspace_write_file" ||
+    event.name === "workspace_apply_patch" ||
+    event.name === "git_diff";
   return (
-    <div className="tool-trace" aria-live="polite">
-      {events.map((event) => {
-        const status = event.status === "started"
-          ? t("tools.statusStarted")
-          : event.status === "completed"
-            ? t("tools.statusCompleted")
-            : t("tools.statusError");
-        return (
-          <div className={`tool-trace-row ${event.status}`} key={event.callId}>
-            <span className="tool-trace-mark" aria-hidden="true" />
-            <strong>{event.name}</strong>
-            <span>{status}</span>
-            {event.detail && <small>{event.detail}</small>}
-          </div>
-        );
-      })}
-    </div>
+    <details className={`tool-call-card ${event.status}`}>
+      <summary>
+        <span className="tool-trace-mark" aria-hidden="true" />
+        <strong>{event.name}</strong>
+        <span>{status}</span>
+        {event.detail && <small>{event.detail}</small>}
+        <span className="tool-call-metrics">
+          {typeof event.durationMs === "number" && `${event.durationMs} ms`}
+          {typeof event.exitCode === "number" && ` / exit ${event.exitCode}`}
+        </span>
+        <ChevronDown size={13} aria-hidden="true" />
+      </summary>
+      <div className="tool-call-detail">
+        {event.changedFiles?.length ? (
+          <section>
+            <h4>{t("tools.changedFiles")}</h4>
+            <ul>{event.changedFiles.map((file) => <li key={file}>{file}</li>)}</ul>
+          </section>
+        ) : null}
+        {event.arguments && (
+          <section>
+            <h4>{t("tools.arguments")}</h4>
+            <pre>{event.arguments}</pre>
+          </section>
+        )}
+        {event.output && (
+          <section>
+            <h4>{isDiff ? t("tools.changes") : t("tools.output")}</h4>
+            <pre className={isDiff ? "tool-diff-output" : ""}>{event.output}</pre>
+          </section>
+        )}
+      </div>
+    </details>
   );
 }
 

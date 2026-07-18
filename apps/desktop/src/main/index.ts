@@ -38,12 +38,21 @@ import {
   rulesReadRequestSchema,
   rulesSaveRequestSchema,
 } from "../shared/rules";
+import {
+  terminalCreateRequestSchema,
+  terminalIdSchema,
+  terminalReadRequestSchema,
+  terminalResizeRequestSchema,
+  terminalWriteRequestSchema,
+} from "../shared/terminal";
+import { TerminalManager } from "./terminal-manager";
 
 let mainWindow: BrowserWindow | null = null;
 let settingsStore: SettingsStore;
 let providerStore: ProviderStore;
 let conversationStore: ConversationStore;
 let rulesStore: RulesStore;
+let terminalManager: TerminalManager;
 let ultraPulseGeneration = 0;
 const activeTurns = new Map<string, AbortController>();
 const workspaceWatchers = new Map<number, () => void>();
@@ -147,15 +156,14 @@ function registerIpc(): void {
       const controller = new AbortController();
       const rules = await rulesStore.read(request.workspace);
       const toolPolicy = settingsStore.read().toolPolicy;
-      const tools = provider.protocol === "openai-chat" || provider.protocol === "openai-responses"
-        ? {
-            workspace: request.workspace,
-            mode: request.mode,
-            policy: toolPolicy,
-            signal: controller.signal,
-            requestApproval: (approval: ToolApprovalRequest) => requestToolApproval(approval),
-          }
-        : undefined;
+      const tools = {
+        workspace: request.workspace,
+        mode: request.mode,
+        policy: toolPolicy,
+        signal: controller.signal,
+        requestApproval: (approval: ToolApprovalRequest) => requestToolApproval(approval),
+        terminal: terminalManager,
+      };
       activeTurns.set(request.turnId, controller);
 
       const send = (chatEvent: ChatEvent): void => {
@@ -289,6 +297,28 @@ function registerIpc(): void {
   ipcMain.handle("workspace:unwatch", (event) => {
     stopWorkspaceWatcher(event.sender.id);
   });
+  ipcMain.handle("terminal:list", (_event, workspace: string) =>
+    terminalManager.list(conversationWorkspaceSchema.parse(workspace)),
+  );
+  ipcMain.handle("terminal:create", async (_event, rawRequest: unknown) => {
+    const request = terminalCreateRequestSchema.parse(rawRequest);
+    return terminalManager.create(request.workspace, request.shell);
+  });
+  ipcMain.handle("terminal:write", async (_event, rawRequest: unknown) => {
+    const request = terminalWriteRequestSchema.parse(rawRequest);
+    await terminalManager.write(request.terminalId, request.data);
+  });
+  ipcMain.handle("terminal:resize", async (_event, rawRequest: unknown) => {
+    const request = terminalResizeRequestSchema.parse(rawRequest);
+    await terminalManager.resize(request.terminalId, request.columns, request.rows);
+  });
+  ipcMain.handle("terminal:read", (_event, rawRequest: unknown) => {
+    const request = terminalReadRequestSchema.parse(rawRequest);
+    return terminalManager.read(request.terminalId, request.maxCharacters);
+  });
+  ipcMain.handle("terminal:close", async (_event, terminalId: string) => {
+    await terminalManager.close(terminalIdSchema.parse(terminalId));
+  });
   ipcMain.handle("inline:register", (event, rawDocument: string) => {
     const document = inlineDocumentSchema.parse(rawDocument);
     const id = randomUUID();
@@ -385,10 +415,12 @@ async function requestToolApproval(approval: ToolApprovalRequest): Promise<boole
     type: "warning",
     title: "KV Code tool approval",
     message: approval.kind === "terminal"
-      ? "The model wants to execute a terminal command."
-      : approval.kind === "write-file"
-        ? "The model wants to write a workspace file."
-        : "The model wants to access a sensitive or external path.",
+      ? "The model wants to use a terminal."
+      : approval.kind === "file-mutation"
+        ? "The model wants to change workspace files."
+        : approval.kind === "git-mutation"
+          ? "The model wants to change Git state."
+          : "The model wants to access a sensitive or external path.",
     detail: approval.summary,
     buttons: ["Allow once", "Deny"],
     defaultId: 1,
@@ -439,6 +471,9 @@ void app.whenReady().then(async () => {
   providerStore = new ProviderStore();
   conversationStore = new ConversationStore();
   rulesStore = new RulesStore();
+  terminalManager = new TerminalManager((event) => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("terminal:event", event);
+  });
   const settings = await settingsStore.load();
   await providerStore.load();
   await conversationStore.load();
@@ -458,3 +493,5 @@ void app.whenReady().then(async () => {
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
+
+app.on("before-quit", () => terminalManager?.dispose());

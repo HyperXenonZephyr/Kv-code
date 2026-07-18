@@ -189,6 +189,134 @@ describe("provider runtime", () => {
     ]));
   });
 
+  it("executes native OpenAI Responses function calls", async () => {
+    toolWorkspace = await mkdtemp(join(tmpdir(), "kv-code-responses-tools-"));
+    await writeFile(join(toolWorkspace, "main.ts"), "export const answer = 42;\n", "utf8");
+    const requestBodies: any[] = [];
+    server = createServer((request, response) => {
+      let body = "";
+      request.setEncoding("utf8");
+      request.on("data", (chunk) => { body += chunk; });
+      request.on("end", () => {
+        requestBodies.push(JSON.parse(body));
+        response.writeHead(200, { "content-type": "text/event-stream" });
+        if (requestBodies.length === 1) {
+          response.end([
+            'data: {"type":"response.created","response":{"id":"resp_1"}}',
+            'data: {"type":"response.output_item.done","item":{"type":"function_call","id":"item_1","call_id":"call_1","name":"workspace_read_file","arguments":"{\\"path\\":\\"main.ts\\"}"}}',
+            "",
+          ].join("\n\n"));
+        } else {
+          response.end('data: {"type":"response.output_text.delta","delta":"Responses verified"}\n\n');
+        }
+      });
+    });
+    await new Promise<void>((resolve) => server?.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("Missing test address");
+    const deltas: string[] = [];
+    const toolEvents: any[] = [];
+    await streamProviderResponse({
+      provider: { id: "responses-tools", name: "Responses", protocol: "openai-responses", baseUrl: `http://127.0.0.1:${address.port}/v1`, model: "test-model" },
+      apiKey: "",
+      systemPrompt: "SYSTEM",
+      reasoning: "high",
+      messages: [{ role: "user", content: "Read main.ts" }],
+      signal: new AbortController().signal,
+      onDelta: (text) => deltas.push(text),
+      onToolEvent: (event) => toolEvents.push(event),
+      tools: { workspace: toolWorkspace, mode: "code", policy: "read-only", signal: new AbortController().signal },
+    });
+    expect(deltas.join("")).toBe("Responses verified");
+    expect(requestBodies[0].tools[0]).toEqual(expect.objectContaining({ type: "function", name: "workspace_list" }));
+    expect(requestBodies[1]).toEqual(expect.objectContaining({ previous_response_id: "resp_1" }));
+    expect(requestBodies[1].input[0]).toEqual(expect.objectContaining({ type: "function_call_output", call_id: "call_1" }));
+    expect(toolEvents.at(-1)).toEqual(expect.objectContaining({ status: "completed", output: expect.stringContaining("answer") }));
+  });
+
+  it("executes native Anthropic tool_use blocks", async () => {
+    toolWorkspace = await mkdtemp(join(tmpdir(), "kv-code-anthropic-tools-"));
+    await writeFile(join(toolWorkspace, "main.ts"), "export const answer = 42;\n", "utf8");
+    const requestBodies: any[] = [];
+    server = createServer((request, response) => {
+      let body = "";
+      request.setEncoding("utf8");
+      request.on("data", (chunk) => { body += chunk; });
+      request.on("end", () => {
+        requestBodies.push(JSON.parse(body));
+        response.writeHead(200, { "content-type": "text/event-stream" });
+        if (requestBodies.length === 1) {
+          response.end([
+            'data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_1","name":"workspace_read_file","input":{}}}',
+            'data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"path\\":\\"main.ts\\"}"}}',
+            'data: {"type":"content_block_stop","index":0}',
+            "",
+          ].join("\n\n"));
+        } else {
+          response.end([
+            'data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}',
+            'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Anthropic verified"}}',
+            "",
+          ].join("\n\n"));
+        }
+      });
+    });
+    await new Promise<void>((resolve) => server?.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("Missing test address");
+    const deltas: string[] = [];
+    await streamProviderResponse({
+      provider: { id: "anthropic-tools", name: "Anthropic", protocol: "anthropic", baseUrl: `http://127.0.0.1:${address.port}/v1`, model: "test-model" },
+      apiKey: "test-key",
+      systemPrompt: "SYSTEM",
+      reasoning: "high",
+      messages: [{ role: "user", content: "Read main.ts" }],
+      signal: new AbortController().signal,
+      onDelta: (text) => deltas.push(text),
+      tools: { workspace: toolWorkspace, mode: "code", policy: "read-only", signal: new AbortController().signal },
+    });
+    expect(deltas.join("")).toBe("Anthropic verified");
+    expect(requestBodies[0].tools[0]).toEqual(expect.objectContaining({ name: "workspace_list", input_schema: expect.any(Object) }));
+    expect(requestBodies[1].messages.at(-1).content[0]).toEqual(expect.objectContaining({ type: "tool_result", tool_use_id: "toolu_1" }));
+  });
+
+  it("executes native Gemini function calls", async () => {
+    toolWorkspace = await mkdtemp(join(tmpdir(), "kv-code-gemini-tools-"));
+    await writeFile(join(toolWorkspace, "main.ts"), "export const answer = 42;\n", "utf8");
+    const requestBodies: any[] = [];
+    server = createServer((request, response) => {
+      let body = "";
+      request.setEncoding("utf8");
+      request.on("data", (chunk) => { body += chunk; });
+      request.on("end", () => {
+        requestBodies.push(JSON.parse(body));
+        response.writeHead(200, { "content-type": "text/event-stream" });
+        if (requestBodies.length === 1) {
+          response.end('data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"workspace_read_file","args":{"path":"main.ts"}}}]}}]}\n\n');
+        } else {
+          response.end('data: {"candidates":[{"content":{"parts":[{"text":"Gemini verified"}]}}]}\n\n');
+        }
+      });
+    });
+    await new Promise<void>((resolve) => server?.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("Missing test address");
+    const deltas: string[] = [];
+    await streamProviderResponse({
+      provider: { id: "gemini-tools", name: "Gemini", protocol: "google-gemini", baseUrl: `http://127.0.0.1:${address.port}/v1beta`, model: "test-model" },
+      apiKey: "",
+      systemPrompt: "SYSTEM",
+      reasoning: "high",
+      messages: [{ role: "user", content: "Read main.ts" }],
+      signal: new AbortController().signal,
+      onDelta: (text) => deltas.push(text),
+      tools: { workspace: toolWorkspace, mode: "code", policy: "read-only", signal: new AbortController().signal },
+    });
+    expect(deltas.join("")).toBe("Gemini verified");
+    expect(requestBodies[0].tools[0].functionDeclarations[0]).toEqual(expect.objectContaining({ name: "workspace_list" }));
+    expect(requestBodies[1].contents.at(-1).parts[0].functionResponse).toEqual(expect.objectContaining({ name: "workspace_read_file" }));
+  });
+
   it("updates a rolling context summary without exposing tools", async () => {
     let requestBody: any = null;
     server = createServer((request, response) => {

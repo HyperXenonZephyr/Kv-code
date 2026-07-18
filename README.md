@@ -6,7 +6,7 @@ for developers and technical knowledge workers.
 This repository currently contains one runnable application:
 `apps/desktop`. It is a TypeScript, Electron, React, and Vite Desktop
 implementation. The CLI, daemon, shared `packages/` architecture, SQLite
-persistence, live PTY terminal, browser control, memory, skills, and
+persistence, browser control, memory, skills, and
 multi-agent runtime described later in this document are target requirements;
 they do not exist in the current source tree.
 
@@ -47,8 +47,8 @@ There is currently no `apps/cli`, `apps/daemon`, or `packages/` directory.
 The current Desktop implementation includes:
 
 - sandboxed Electron IPC with OS-encrypted provider credentials;
-- OpenAI Responses, OpenAI-compatible Chat Completions, Anthropic Messages,
-  and Google Gemini streaming adapters;
+- native tool-capable loops for OpenAI Responses, OpenAI-compatible Chat
+  Completions, Anthropic Messages, and Google Gemini;
 - persistent conversations stored independently per workspace, without silent
   history eviction, with per-message tool audit records;
 - incremental rolling-summary context compaction that preserves the original
@@ -60,12 +60,19 @@ The current Desktop implementation includes:
   streaming updates;
 - user-authored global and project rules with resolved-order preview, bounded
   model injection, and local Git exclusion for `.kv-code/`;
-- policy-controlled `workspace_list`, `workspace_read_file`, `git_status`,
-  `git_diff`, `workspace_write_file`, and `terminal_exec` tools for compatible
-  OpenAI-style chat providers;
+- workspace file listing and search, text search, ranged reads, exact text
+  patches, writes, directory creation, moves, and deletion;
+- structured Git status, diff, log, show, branch, conflict, staging,
+  unstaging, branch creation and checkout, commit, and worktree tools;
+- one-shot terminal execution plus an integrated node-pty/xterm terminal with
+  tabs, retained output, input, resize, lifecycle controls, and model-visible
+  session output;
 - Read-only, Auto, and YOLO tool policies, including Auto approval dialogs,
-  an explicit YOLO warning, and persisted tool-call status and parameter
-  summaries attached to the corresponding assistant message;
+  an explicit YOLO warning, safely parallelized read-only calls, and persisted
+  tool audit records attached to the corresponding assistant message;
+- a wide, left-aligned, collapsible work-process timeline whose individual
+  tool entries reveal parameters, output, edit diffs, durations, exit codes,
+  and changed files on demand;
 - in-place sandboxed JSX/TSX interactive components and sanitized SVG output,
   each with source/preview switching;
 - sandboxed source/rendered HTML file previews with scripts and network access
@@ -76,18 +83,15 @@ The current Desktop implementation includes:
   controls with reduced-motion support.
 
 Current local persistence uses Electron user-data files, not SQLite. Provider
-secrets are protected with operating-system encryption. `terminal_exec` is a
-one-shot agent tool; it is not the planned interactive PTY terminal. Git access
-is currently limited to status and diff inspection, so staging, commits,
-branches, worktrees, and other Git mutations remain unimplemented.
+secrets are protected with operating-system encryption. Integrated terminal
+sessions are process-local and close with the application; conversation tool
+audit records remain durable with their assistant messages.
 
 The following major capabilities remain planned rather than implemented:
 
 - the CLI and persistent runtime daemon;
 - the shared package architecture shown in the target repository shape;
 - SQLite persistence and migrations;
-- an interactive terminal surface backed by a PTY;
-- structured Git mutation tools;
 - an AI-controllable browser with text and visual context;
 - AI-authored global and project memory;
 - reusable skills and user-defined agents; and
